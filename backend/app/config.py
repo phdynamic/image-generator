@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     OUTPUTS_DIR: str = str(PROJECT_ROOT / "outputs" / "images")
     THUMBNAILS_DIR: str = str(PROJECT_ROOT / "outputs" / "thumbnails")
     MODELS_CACHE_DIR: str = str(PROJECT_ROOT / "models_cache")
-    DEFAULT_MODEL: str = "stabilityai/stable-diffusion-2-1"
+    DEFAULT_MODEL: str = "stabilityai/stable-diffusion-3.5-medium"
     MAX_IMAGE_SIZE: int = 1024
     THUMBNAIL_SIZE: int = 256
     HF_TOKEN: str = ""
