@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     DEFAULT_MODEL: str = "stabilityai/stable-diffusion-2-1"
     MAX_IMAGE_SIZE: int = 1024
     THUMBNAIL_SIZE: int = 256
+    HF_TOKEN: str = ""
 
     class Config:
         env_file = ".env"

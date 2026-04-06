@@ -30,10 +30,12 @@ class ModelManager:
         else:
             pipe_cls = StableDiffusionPipeline
 
+        token = settings.HF_TOKEN or None
         self.pipeline = pipe_cls.from_pretrained(
             model_id,
             torch_dtype=torch.float16,
             cache_dir=settings.MODELS_CACHE_DIR,
+            token=token,
         )
 
         device = get_device()
