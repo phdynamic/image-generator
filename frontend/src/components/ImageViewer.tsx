@@ -1,5 +1,5 @@
-import { useEffect, useCallback } from 'react'
-import { X, Download, Heart, Trash2, Copy } from 'lucide-react'
+import { useEffect, useCallback, useState } from 'react'
+import { X, Download, Heart, Trash2, Copy, Send } from 'lucide-react'
 import type { GeneratedImage } from '../lib/types'
 import { getImageUrl } from '../lib/api'
 
@@ -45,6 +45,39 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
   const handleDelete = () => {
     onDelete(image.id)
     onClose()
+  }
+
+  const [stashlyStatus, setStashlyStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [stashlyError, setStashlyError] = useState('')
+
+  const handleSendToStashly = async () => {
+    setStashlyStatus('sending')
+    try {
+      const imageUrl = `${window.location.origin}${getImageUrl(image)}`
+      const res = await fetch('http://127.0.0.1:9473/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: imageUrl,
+          title: image.prompt.length > 60 ? image.prompt.substring(0, 60) + '...' : image.prompt,
+          description: image.prompt,
+          tags: image.prompt.toLowerCase().split(/[\s,]+/).filter(w => w.length > 3).slice(0, 8),
+          source: `Imaginaree (${image.model_id})`,
+          photographer: '',
+        }),
+      })
+      if (res.ok) {
+        setStashlyStatus('sent')
+        setTimeout(() => setStashlyStatus('idle'), 2000)
+      } else {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+    } catch (e: any) {
+      setStashlyStatus('error')
+      setStashlyError(e.message === 'Failed to fetch' ? 'Stashly not running' : e.message)
+      setTimeout(() => setStashlyStatus('idle'), 3000)
+    }
   }
 
   const createdDate = new Date(image.created_at).toLocaleString()
@@ -147,6 +180,21 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
             >
               <Copy size={16} />
               Copy
+            </button>
+            <button
+              onClick={handleSendToStashly}
+              disabled={stashlyStatus === 'sending'}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-colors text-sm ${
+                stashlyStatus === 'sent'
+                  ? 'bg-emerald-700 text-white'
+                  : stashlyStatus === 'error'
+                  ? 'bg-red-700 text-white'
+                  : 'bg-slate-700 hover:bg-slate-600 text-white'
+              }`}
+              title="Send to Stashly"
+            >
+              <Send size={16} />
+              {stashlyStatus === 'sending' ? '...' : stashlyStatus === 'sent' ? 'Sent!' : stashlyStatus === 'error' ? stashlyError : 'Stash'}
             </button>
             <button
               onClick={() => onToggleFavorite(image.id)}
