@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { ChevronDown } from 'lucide-react'
 import { getModels } from '../lib/api'
 
 interface ModelSelectorProps {
@@ -31,17 +32,20 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
   return (
     <div>
       <label className="block text-sm text-slate-400 mb-1">Model</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-      >
-        {models.map((model) => (
-          <option key={model.id} value={model.id}>
-            {model.is_loaded ? '\u25CF ' : ''}{model.name} ({model.vram})
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent appearance-none"
+        >
+          {models.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.is_loaded ? '\u25CF ' : ''}{model.name} ({model.vram})
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      </div>
     </div>
   )
 }
