@@ -45,5 +45,3 @@ dist/
 build/
 *.spec.bak
 
-# Backend static build
-backend/static/
