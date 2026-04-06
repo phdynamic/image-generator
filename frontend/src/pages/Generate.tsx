@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import PromptEditor from '../components/PromptEditor'
 import ModelSelector from '../components/ModelSelector'
-import ProgressBar from '../components/ProgressBar'
+import ProgressBar, { type ProgressBarHandle } from '../components/ProgressBar'
 import Gallery from '../components/Gallery'
 import { useGeneration } from '../hooks/useGeneration'
 
 export default function Generate() {
   const [selectedModel, setSelectedModel] = useState('')
-  const { generate, isGenerating, error } = useGeneration()
+  const progressRef = useRef<ProgressBarHandle>(null)
+  const { generate, isGenerating, error } = useGeneration(() => {
+    progressRef.current?.clear()
+  })
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -20,7 +23,7 @@ export default function Generate() {
             isGenerating={isGenerating}
             selectedModel={selectedModel || undefined}
           />
-          <ProgressBar isGenerating={isGenerating} />
+          <ProgressBar ref={progressRef} isGenerating={isGenerating} />
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm">
               {error.message}

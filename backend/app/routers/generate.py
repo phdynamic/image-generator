@@ -1,4 +1,3 @@
-import asyncio
 import random
 
 from fastapi import APIRouter, Depends, Request
@@ -25,15 +24,7 @@ class GenerateRequest(BaseModel):
 
 
 def _broadcast_progress(step: int, total_steps: int):
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.run_coroutine_threadsafe(
-                manager.broadcast({"step": step, "total_steps": total_steps}),
-                loop,
-            )
-    except RuntimeError:
-        pass
+    manager.broadcast_sync({"step": step, "total_steps": total_steps})
 
 
 @router.post("/generate")
