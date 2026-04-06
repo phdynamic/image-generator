@@ -64,6 +64,7 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
           tags: image.prompt.toLowerCase().split(/[\s,]+/).filter(w => w.length > 3).slice(0, 8),
           source: `Imaginaree (${image.model_id})`,
           photographer: '',
+          contentType: 'aiart',
         }),
       })
       if (res.ok) {
