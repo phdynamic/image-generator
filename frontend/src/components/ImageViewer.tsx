@@ -87,7 +87,7 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-slate-800 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row border border-slate-700 shadow-2xl">
+      <div className="bg-slate-800 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row border border-slate-700 shadow-2xl">
         {/* Image section */}
         <div className="flex-1 min-h-0 bg-slate-900 flex items-center justify-center p-4">
           <img
@@ -98,7 +98,7 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
         </div>
 
         {/* Metadata sidebar */}
-        <div className="w-full md:w-80 flex-shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-slate-700">
+        <div className="w-full md:w-96 flex-shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-slate-700">
           <div className="flex items-center justify-between p-4 border-b border-slate-700">
             <h3 className="text-lg font-semibold text-white">Details</h3>
             <button
@@ -164,7 +164,7 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
           </div>
 
           {/* Actions */}
-          <div className="p-4 border-t border-slate-700 flex gap-2">
+          <div className="p-4 border-t border-slate-700 flex flex-wrap gap-2">
             <button
               onClick={handleDownload}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm text-white"
