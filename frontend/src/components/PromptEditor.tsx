@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 import { Sparkles, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import type { GenerateRequest } from '../lib/types'
+
+export interface PromptEditorHandle {
+  setPrompt: (prompt: string) => void
+}
 
 interface PromptEditorProps {
   onGenerate: (request: GenerateRequest) => void
@@ -8,7 +12,7 @@ interface PromptEditorProps {
   selectedModel?: string
 }
 
-export default function PromptEditor({ onGenerate, isGenerating, selectedModel }: PromptEditorProps) {
+const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGenerate, isGenerating, selectedModel }, ref) => {
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -35,6 +39,10 @@ export default function PromptEditor({ onGenerate, isGenerating, selectedModel }
 
     onGenerate(request)
   }
+
+  useImperativeHandle(ref, () => ({
+    setPrompt,
+  }))
 
   const sizes = [256, 512, 768, 1024]
 
@@ -163,4 +171,8 @@ export default function PromptEditor({ onGenerate, isGenerating, selectedModel }
       </button>
     </form>
   )
-}
+})
+
+PromptEditor.displayName = 'PromptEditor'
+
+export default PromptEditor

@@ -1,13 +1,15 @@
 import { useState, useRef } from 'react'
-import PromptEditor from '../components/PromptEditor'
+import PromptEditor, { type PromptEditorHandle } from '../components/PromptEditor'
 import ModelSelector from '../components/ModelSelector'
 import ProgressBar, { type ProgressBarHandle } from '../components/ProgressBar'
+import PromptHistory from '../components/PromptHistory'
 import Gallery from '../components/Gallery'
 import { useGeneration } from '../hooks/useGeneration'
 
 export default function Generate() {
   const [selectedModel, setSelectedModel] = useState('')
   const progressRef = useRef<ProgressBarHandle>(null)
+  const promptEditorRef = useRef<PromptEditorHandle>(null)
   const { generate, isGenerating, error } = useGeneration(() => {
     progressRef.current?.clear()
   })
@@ -19,6 +21,7 @@ export default function Generate() {
         <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
           <ModelSelector value={selectedModel} onChange={setSelectedModel} />
           <PromptEditor
+            ref={promptEditorRef}
             onGenerate={generate}
             isGenerating={isGenerating}
             selectedModel={selectedModel || undefined}
@@ -29,6 +32,7 @@ export default function Generate() {
               {error.message}
             </div>
           )}
+          <PromptHistory onSelectPrompt={(p) => promptEditorRef.current?.setPrompt(p)} />
         </div>
 
         {/* Right panel: gallery */}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Star, Image as ImageIcon } from 'lucide-react'
-import { getImages, toggleFavorite, deleteImage } from '../lib/api'
+import { Search, Star, Image as ImageIcon, ArrowUpDown, CheckSquare, Square, Trash2, X } from 'lucide-react'
+import { getImages, getModels, toggleFavorite, deleteImage, batchDeleteImages } from '../lib/api'
 import type { GeneratedImage } from '../lib/types'
 import ImageCard from './ImageCard'
 import ImageViewer from './ImageViewer'
@@ -11,25 +11,39 @@ export default function Gallery() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const [sortBy, setSortBy] = useState('newest')
+  const [modelFilter, setModelFilter] = useState('')
   const [viewingImage, setViewingImage] = useState<GeneratedImage | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['images', page, search, favoritesOnly],
-    queryFn: () => getImages(page, 20, search || undefined, favoritesOnly || undefined),
+    queryKey: ['images', page, search, favoritesOnly, sortBy, modelFilter],
+    queryFn: () => getImages(page, 20, search || undefined, favoritesOnly || undefined, sortBy, modelFilter || undefined),
+  })
+
+  const { data: models } = useQuery({
+    queryKey: ['models'],
+    queryFn: getModels,
   })
 
   const favoriteMutation = useMutation({
     mutationFn: toggleFavorite,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['images'] })
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['images'] }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteImage,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['images'] }),
+  })
+
+  const batchDeleteMutation = useMutation({
+    mutationFn: batchDeleteImages,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['images'] })
+      setSelectedIds(new Set())
+      setSelectMode(false)
     },
   })
 
@@ -45,11 +59,36 @@ export default function Gallery() {
     }
   }
 
+  const handleBatchDelete = () => {
+    if (selectedIds.size === 0) return
+    if (confirm(`Delete ${selectedIds.size} selected images?`)) {
+      batchDeleteMutation.mutate(Array.from(selectedIds))
+    }
+  }
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectAll = () => {
+    if (!data) return
+    if (selectedIds.size === data.images.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(data.images.map(img => img.id)))
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Search and filters */}
-      <div className="flex gap-3 items-center">
-        <form onSubmit={handleSearch} className="flex-1 relative">
+      <div className="flex flex-wrap gap-3 items-center">
+        <form onSubmit={handleSearch} className="flex-1 min-w-48 relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -59,11 +98,9 @@ export default function Gallery() {
             className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
         </form>
+
         <button
-          onClick={() => {
-            setFavoritesOnly(!favoritesOnly)
-            setPage(1)
-          }}
+          onClick={() => { setFavoritesOnly(!favoritesOnly); setPage(1) }}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors border ${
             favoritesOnly
               ? 'bg-violet-600 border-violet-500 text-white'
@@ -73,7 +110,81 @@ export default function Gallery() {
           <Star size={14} className={favoritesOnly ? 'fill-white' : ''} />
           Favorites
         </button>
+
+        <button
+          onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()) }}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors border ${
+            selectMode
+              ? 'bg-violet-600 border-violet-500 text-white'
+              : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'
+          }`}
+        >
+          <CheckSquare size={14} />
+          Select
+        </button>
       </div>
+
+      {/* Sort and model filter row */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex items-center gap-2">
+          <ArrowUpDown size={14} className="text-slate-400" />
+          <select
+            value={sortBy}
+            onChange={(e) => { setSortBy(e.target.value); setPage(1) }}
+            className="bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="model">By Model</option>
+          </select>
+        </div>
+
+        {models && models.length > 0 && (
+          <select
+            value={modelFilter}
+            onChange={(e) => { setModelFilter(e.target.value); setPage(1) }}
+            className="bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+          >
+            <option value="">All Models</option>
+            {models.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        )}
+
+        {data && (
+          <span className="text-xs text-slate-500 ml-auto">
+            {data.total} image{data.total !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Batch actions bar */}
+      {selectMode && (
+        <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-600 rounded-lg px-4 py-2">
+          <button onClick={selectAll} className="flex items-center gap-1.5 text-sm text-slate-300 hover:text-white">
+            {data && selectedIds.size === data.images.length ? <CheckSquare size={14} /> : <Square size={14} />}
+            {data && selectedIds.size === data.images.length ? 'Deselect All' : 'Select All'}
+          </button>
+          <span className="text-sm text-slate-400">{selectedIds.size} selected</span>
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={handleBatchDelete}
+              disabled={selectedIds.size === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm text-white transition-colors"
+            >
+              <Trash2 size={14} />
+              Delete ({selectedIds.size})
+            </button>
+            <button
+              onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
+              className="p-1.5 rounded-lg hover:bg-slate-700 transition-colors"
+            >
+              <X size={16} className="text-slate-400" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Image grid */}
       {isLoading ? (
@@ -87,9 +198,12 @@ export default function Gallery() {
               <ImageCard
                 key={image.id}
                 image={image}
-                onView={setViewingImage}
+                onView={selectMode ? undefined : setViewingImage}
                 onToggleFavorite={(id) => favoriteMutation.mutate(id)}
                 onDelete={handleDelete}
+                selectable={selectMode}
+                selected={selectedIds.has(image.id)}
+                onToggleSelect={toggleSelect}
               />
             ))}
           </div>

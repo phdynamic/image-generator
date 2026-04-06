@@ -23,7 +23,9 @@ export async function getImages(
   page = 1,
   perPage = 20,
   search?: string,
-  favoritesOnly?: boolean
+  favoritesOnly?: boolean,
+  sortBy?: string,
+  modelFilter?: string,
 ): Promise<PaginatedImages> {
   const params = new URLSearchParams({
     page: String(page),
@@ -31,6 +33,8 @@ export async function getImages(
   })
   if (search) params.set('search', search)
   if (favoritesOnly) params.set('favorites_only', 'true')
+  if (sortBy) params.set('sort_by', sortBy)
+  if (modelFilter) params.set('model_filter', modelFilter)
   const response = await fetch(`${API_BASE}/images?${params}`)
   return handleResponse<PaginatedImages>(response)
 }
@@ -42,6 +46,18 @@ export async function getImage(id: number): Promise<GeneratedImage> {
 
 export async function deleteImage(id: number): Promise<void> {
   const response = await fetch(`${API_BASE}/images/${id}`, { method: 'DELETE' })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'An error occurred' }))
+    throw new Error(error.detail || `HTTP ${response.status}`)
+  }
+}
+
+export async function batchDeleteImages(ids: number[]): Promise<void> {
+  const response = await fetch(`${API_BASE}/images/batch-delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'An error occurred' }))
     throw new Error(error.detail || `HTTP ${response.status}`)
@@ -61,6 +77,11 @@ export async function getModels(): Promise<ModelInfo[]> {
 export async function getGpuStatus(): Promise<GpuStatus> {
   const response = await fetch(`${API_BASE}/gpu-status`)
   return handleResponse<GpuStatus>(response)
+}
+
+export async function getPromptHistory(): Promise<string[]> {
+  const response = await fetch(`${API_BASE}/prompts/history`)
+  return handleResponse<string[]>(response)
 }
 
 export function getImageUrl(image: GeneratedImage): string {

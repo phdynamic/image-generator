@@ -40,6 +40,7 @@ export interface ModelInfo {
   vram: string
   description: string
   is_loaded: boolean
+  is_cached: boolean
 }
 
 export interface GpuStatus {
