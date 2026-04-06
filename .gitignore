@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+*.egg
+
+# Node
+node_modules/
+frontend/dist/
+
+# Generated content
+outputs/images/*
+outputs/thumbnails/*
+!outputs/images/.gitkeep
+!outputs/thumbnails/.gitkeep
+
+# Model weights
+models_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# SQLite
+*.db
+*.db-journal

@@ -1,0 +1,166 @@
+import { useState } from 'react'
+import { Sparkles, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import type { GenerateRequest } from '../lib/types'
+
+interface PromptEditorProps {
+  onGenerate: (request: GenerateRequest) => void
+  isGenerating: boolean
+  selectedModel?: string
+}
+
+export default function PromptEditor({ onGenerate, isGenerating, selectedModel }: PromptEditorProps) {
+  const [prompt, setPrompt] = useState('')
+  const [negativePrompt, setNegativePrompt] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [steps, setSteps] = useState(30)
+  const [cfgScale, setCfgScale] = useState(7.5)
+  const [width, setWidth] = useState(512)
+  const [height, setHeight] = useState(512)
+  const [seed, setSeed] = useState(-1)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!prompt.trim() || isGenerating) return
+
+    const request: GenerateRequest = {
+      prompt: prompt.trim(),
+      steps,
+      cfg_scale: cfgScale,
+      width,
+      height,
+    }
+    if (negativePrompt.trim()) request.negative_prompt = negativePrompt.trim()
+    if (selectedModel) request.model_id = selectedModel
+    if (seed !== -1) request.seed = seed
+
+    onGenerate(request)
+  }
+
+  const sizes = [256, 512, 768, 1024]
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Describe the image you want to create..."
+          rows={4}
+          className="w-full bg-slate-800 border border-slate-600 rounded-xl p-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none text-lg"
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm"
+      >
+        {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        Advanced Settings
+      </button>
+
+      {showAdvanced && (
+        <div className="space-y-4 bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Negative Prompt</label>
+            <textarea
+              value={negativePrompt}
+              onChange={(e) => setNegativePrompt(e.target.value)}
+              placeholder="What to avoid in the image..."
+              rows={2}
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">
+                Steps: {steps}
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={50}
+                value={steps}
+                onChange={(e) => setSteps(Number(e.target.value))}
+                className="w-full accent-violet-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">
+                CFG Scale: {cfgScale}
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={20}
+                step={0.5}
+                value={cfgScale}
+                onChange={(e) => setCfgScale(Number(e.target.value))}
+                className="w-full accent-violet-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Width</label>
+              <select
+                value={width}
+                onChange={(e) => setWidth(Number(e.target.value))}
+                className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+              >
+                {sizes.map((s) => (
+                  <option key={s} value={s}>{s}px</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Height</label>
+              <select
+                value={height}
+                onChange={(e) => setHeight(Number(e.target.value))}
+                className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+              >
+                {sizes.map((s) => (
+                  <option key={s} value={s}>{s}px</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Seed</label>
+              <input
+                type="number"
+                value={seed}
+                onChange={(e) => setSeed(Number(e.target.value))}
+                className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                placeholder="-1 for random"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={!prompt.trim() || isGenerating}
+        className="w-full bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 size={20} className="animate-spin" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Sparkles size={20} />
+            Generate
+          </>
+        )}
+      </button>
+    </form>
+  )
+}
