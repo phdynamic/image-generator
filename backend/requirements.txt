@@ -7,4 +7,9 @@ websockets
 pydantic
 pydantic-settings
 aiofiles
+diffusers
+transformers
+torch
+accelerate
+safetensors
 huggingface_hub

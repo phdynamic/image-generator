@@ -2,26 +2,17 @@ import os
 import time
 from typing import Callable
 
-from huggingface_hub import InferenceClient
+import torch
 
 from ..config import settings
 from ..utils.image_utils import save_image, create_thumbnail
+from ..utils.gpu_utils import get_device
 from .model_manager import ModelManager
 
 
 class ImageGenerator:
     def __init__(self, model_manager: ModelManager):
         self.model_manager = model_manager
-        self.client = None
-
-    def _get_client(self) -> InferenceClient:
-        if self.client is None:
-            if not settings.HF_TOKEN:
-                raise RuntimeError(
-                    "HF_TOKEN is not set. Add your HuggingFace token to backend/.env file."
-                )
-            self.client = InferenceClient(api_key=settings.HF_TOKEN)
-        return self.client
 
     def generate(
         self,
@@ -35,36 +26,38 @@ class ImageGenerator:
         height: int = 512,
         progress_callback: Callable | None = None,
     ) -> dict:
-        client = self._get_client()
+        self.model_manager.load_model(model_id)
+        pipeline = self.model_manager.get_pipeline()
 
-        if progress_callback:
-            progress_callback(1, 3)
+        device = get_device()
+        generator = torch.Generator(device=device).manual_seed(seed)
+
+        def step_callback(pipe, step_index, timestep, callback_kwargs):
+            if progress_callback:
+                progress_callback(step_index + 1, steps)
+            return callback_kwargs
 
         start_time = time.time()
 
-        image = client.text_to_image(
+        result = pipeline(
             prompt=prompt,
-            model=model_id,
-            width=width,
-            height=height,
+            negative_prompt=negative_prompt if negative_prompt else None,
             num_inference_steps=steps,
             guidance_scale=cfg_scale,
-            negative_prompt=negative_prompt if negative_prompt else None,
+            width=width,
+            height=height,
+            generator=generator,
+            callback_on_step_end=step_callback,
         )
 
-        if progress_callback:
-            progress_callback(2, 3)
-
         generation_time = time.time() - start_time
+        image = result.images[0]
 
         filename = save_image(image, settings.OUTPUTS_DIR)
         image_path = os.path.join(settings.OUTPUTS_DIR, filename)
         thumbnail_filename = create_thumbnail(
             image_path, settings.THUMBNAILS_DIR, settings.THUMBNAIL_SIZE
         )
-
-        if progress_callback:
-            progress_callback(3, 3)
 
         return {
             "file_path": filename,
