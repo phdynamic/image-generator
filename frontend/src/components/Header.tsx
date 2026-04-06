@@ -10,8 +10,8 @@ export default function Header() {
   })
 
   const hasCuda = gpu?.device === 'cuda'
-  const vramUsed = gpu?.vram ? (gpu.vram.used / 1024).toFixed(1) : null
-  const vramTotal = gpu?.vram ? (gpu.vram.total / 1024).toFixed(1) : null
+  const vramUsed = gpu?.vram ? (gpu.vram.used / (1024 ** 3)).toFixed(1) : null
+  const vramTotal = gpu?.vram ? (gpu.vram.total / (1024 ** 3)).toFixed(1) : null
 
   return (
     <header className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">

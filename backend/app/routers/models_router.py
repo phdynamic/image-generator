@@ -12,9 +12,9 @@ def list_models(request: Request):
     current_model = model_manager.current_model_id
 
     for model in models:
-        model["loaded"] = model["id"] == current_model
+        model["is_loaded"] = model["id"] == current_model
 
-    return {"models": models}
+    return models
 
 
 @router.get("/gpu-status")
