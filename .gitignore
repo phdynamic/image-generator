@@ -39,3 +39,11 @@ Thumbs.db
 # SQLite
 *.db
 *.db-journal
+
+# PyInstaller
+dist/
+build/
+*.spec.bak
+
+# Backend static build
+backend/static/

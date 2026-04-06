@@ -13,3 +13,5 @@ torch
 accelerate
 safetensors
 huggingface_hub
+pywebview
+pyinstaller
