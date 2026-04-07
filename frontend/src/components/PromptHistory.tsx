@@ -30,10 +30,10 @@ export default function PromptHistory({ onSelectPrompt }: PromptHistoryProps) {
           <button
             key={i}
             onClick={() => onSelectPrompt(prompt)}
-            className="w-full text-left text-xs text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg px-2 py-1.5 transition-colors line-clamp-2"
+            className="w-full text-left text-xs text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg px-2 py-1.5 transition-colors truncate"
             title={prompt}
           >
-            {prompt}
+            {prompt.split('\n')[0]}
           </button>
         ))}
       </div>
