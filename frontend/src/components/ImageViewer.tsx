@@ -204,7 +204,7 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
                 title="Generate similar with new seed"
               >
                 <RefreshCw size={16} />
-                Re-generate
+                Regen
               </button>
             )}
             <button

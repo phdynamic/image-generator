@@ -8,7 +8,7 @@ export interface PromptEditorHandle {
 }
 
 interface PromptEditorProps {
-  onGenerate: (request: GenerateRequest) => void
+  onGenerate: (request: GenerateRequest | GenerateRequest[]) => void
   isGenerating: boolean
   selectedModel?: string
 }
@@ -58,6 +58,7 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
       } catch { /* use original if enhance fails */ }
     }
 
+    const requests: GenerateRequest[] = []
     for (let i = 0; i < batchCount; i++) {
       const request: GenerateRequest = {
         prompt: finalPrompt,
@@ -73,9 +74,10 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
         request.input_image = inputImage
         request.strength = strength
       }
-
-      onGenerate(request)
+      requests.push(request)
     }
+
+    onGenerate(requests.length === 1 ? requests[0] : requests)
   }
 
   useImperativeHandle(ref, () => ({

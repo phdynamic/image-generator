@@ -99,3 +99,20 @@ body {
 .light select option {
   @apply bg-white text-slate-900;
 }
+
+/* Keep white text on colored buttons in light mode */
+.light .bg-violet-600 .text-white,
+.light .bg-violet-600.text-white,
+.light .bg-violet-500 .text-white,
+.light .bg-violet-500.text-white,
+.light .bg-violet-600 {
+  color: white !important;
+}
+
+.light .bg-red-600 {
+  color: white !important;
+}
+
+.light .bg-emerald-700 {
+  color: white !important;
+}

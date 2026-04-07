@@ -23,32 +23,34 @@ class ModelManager:
                 cls._instance.current_model_id = None
                 cls._instance.pipeline = None
                 cls._instance.img2img_pipeline = None
+                cls._instance._load_lock = threading.Lock()
             return cls._instance
 
     def load_model(self, model_id: str):
-        if self.current_model_id == model_id and self.pipeline is not None:
-            return
+        with self._load_lock:
+            if self.current_model_id == model_id and self.pipeline is not None:
+                return
 
-        self.unload_model()
+            self.unload_model()
 
-        is_xl = "xl" in model_id.lower() or "ssd" in model_id.lower()
-        pipe_cls = StableDiffusionXLPipeline if is_xl else StableDiffusionPipeline
-        img2img_cls = StableDiffusionXLImg2ImgPipeline if is_xl else StableDiffusionImg2ImgPipeline
+            is_xl = "xl" in model_id.lower() or "ssd" in model_id.lower()
+            pipe_cls = StableDiffusionXLPipeline if is_xl else StableDiffusionPipeline
+            img2img_cls = StableDiffusionXLImg2ImgPipeline if is_xl else StableDiffusionImg2ImgPipeline
 
-        self.pipeline = pipe_cls.from_pretrained(
-            model_id,
-            torch_dtype=torch.float16,
-            cache_dir=settings.MODELS_CACHE_DIR,
-        )
+            self.pipeline = pipe_cls.from_pretrained(
+                model_id,
+                torch_dtype=torch.float16,
+                cache_dir=settings.MODELS_CACHE_DIR,
+            )
 
-        device = get_device()
-        self.pipeline = self.pipeline.to(device)
-        self.pipeline.enable_attention_slicing()
+            device = get_device()
+            self.pipeline = self.pipeline.to(device)
+            self.pipeline.enable_attention_slicing()
 
-        # Create img2img pipeline sharing the same model components
-        self.img2img_pipeline = img2img_cls(**self.pipeline.components)
+            # Create img2img pipeline sharing the same model components
+            self.img2img_pipeline = img2img_cls(**self.pipeline.components)
 
-        self.current_model_id = model_id
+            self.current_model_id = model_id
 
     def unload_model(self):
         if self.pipeline is not None:
