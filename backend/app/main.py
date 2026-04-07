@@ -1,4 +1,5 @@
-import os
+import sys
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -12,6 +13,23 @@ from .database import engine, Base
 from .services.model_manager import ModelManager
 from .services.generator import ImageGenerator
 from .routers import generate, gallery, models_router, websocket
+
+logger = logging.getLogger(__name__)
+
+
+def _get_static_dir() -> Path | None:
+    if getattr(sys, 'frozen', False):
+        d = Path(sys.executable).parent / "static"
+    else:
+        d = Path(__file__).resolve().parent.parent / "static"
+    if d.exists() and (d / "index.html").exists():
+        logger.info(f"Serving frontend from: {d}")
+        return d
+    logger.warning(f"Frontend static dir not found at: {d}")
+    return None
+
+
+STATIC_DIR = _get_static_dir()
 
 
 @asynccontextmanager
@@ -34,25 +52,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API routes first — these take priority
 app.include_router(generate.router)
 app.include_router(gallery.router)
 app.include_router(models_router.router)
 app.include_router(websocket.router)
 
+# Output file mounts
 app.mount("/outputs/images", StaticFiles(directory=settings.OUTPUTS_DIR), name="images")
 app.mount("/outputs/thumbnails", StaticFiles(directory=settings.THUMBNAILS_DIR), name="thumbnails")
 
-# Serve built React frontend
-if getattr(__import__('sys'), 'frozen', False):
-    STATIC_DIR = Path(__import__('sys').executable).parent / "static"
-else:
-    STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
-if STATIC_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="static-assets")
-
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        file_path = STATIC_DIR / full_path
-        if file_path.exists() and file_path.is_file():
-            return FileResponse(str(file_path))
-        return FileResponse(str(STATIC_DIR / "index.html"))
+# Serve built React frontend — mount the whole static dir as a fallback
+if STATIC_DIR is not None:
+    # This must be last — it catches everything not matched above
+    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="frontend")
