@@ -1,6 +1,7 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
-import { Sparkles, ChevronDown, ChevronUp, Loader2, Upload, X } from 'lucide-react'
+import { Sparkles, ChevronDown, ChevronUp, Loader2, Upload, X, Wand2, Layers } from 'lucide-react'
 import type { GenerateRequest } from '../lib/types'
+import { enhancePrompt } from '../lib/api'
 
 export interface PromptEditorHandle {
   setPrompt: (prompt: string) => void
@@ -24,6 +25,9 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
   const [inputImage, setInputImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [strength, setStrength] = useState(0.75)
+  const [enhance, setEnhance] = useState(false)
+  const [enhanceStyle, setEnhanceStyle] = useState('general')
+  const [batchCount, setBatchCount] = useState(1)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,26 +46,36 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!prompt.trim() || isGenerating) return
 
-    const request: GenerateRequest = {
-      prompt: prompt.trim(),
-      steps,
-      cfg_scale: cfgScale,
-      width,
-      height,
-    }
-    if (negativePrompt.trim()) request.negative_prompt = negativePrompt.trim()
-    if (selectedModel) request.model_id = selectedModel
-    if (seed !== -1) request.seed = seed
-    if (inputImage) {
-      request.input_image = inputImage
-      request.strength = strength
+    let finalPrompt = prompt.trim()
+    if (enhance) {
+      try {
+        const result = await enhancePrompt(finalPrompt, enhanceStyle)
+        finalPrompt = result.enhanced
+      } catch { /* use original if enhance fails */ }
     }
 
-    onGenerate(request)
+    for (let i = 0; i < batchCount; i++) {
+      const request: GenerateRequest = {
+        prompt: finalPrompt,
+        steps,
+        cfg_scale: cfgScale,
+        width,
+        height,
+      }
+      if (negativePrompt.trim()) request.negative_prompt = negativePrompt.trim()
+      if (selectedModel) request.model_id = selectedModel
+      if (seed !== -1 && batchCount === 1) request.seed = seed
+      if (inputImage) {
+        request.input_image = inputImage
+        request.strength = strength
+      }
+
+      onGenerate(request)
+    }
   }
 
   useImperativeHandle(ref, () => ({
@@ -186,6 +200,50 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
             </div>
           </div>
 
+          {/* Enhance and Batch */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="checkbox"
+                  id="enhance"
+                  checked={enhance}
+                  onChange={(e) => setEnhance(e.target.checked)}
+                  className="accent-violet-500"
+                />
+                <label htmlFor="enhance" className="text-sm text-slate-400 flex items-center gap-1">
+                  <Wand2 size={12} /> Enhance Prompt
+                </label>
+              </div>
+              {enhance && (
+                <select
+                  value={enhanceStyle}
+                  onChange={(e) => setEnhanceStyle(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg p-1.5 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 text-xs"
+                >
+                  <option value="general">General Quality</option>
+                  <option value="illustration">Illustration Style</option>
+                  <option value="photo">Photography Style</option>
+                  <option value="artistic">Artistic Style</option>
+                </select>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-400 flex items-center gap-1 mb-1">
+                <Layers size={12} /> Batch: {batchCount}
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={4}
+                value={batchCount}
+                onChange={(e) => setBatchCount(Number(e.target.value))}
+                className="w-full accent-violet-500"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-slate-400 mb-1">Width</label>
@@ -240,7 +298,7 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
         ) : (
           <>
             <Sparkles size={20} />
-            {inputImage ? 'Generate (img2img)' : 'Generate'}
+            {inputImage ? 'Generate (img2img)' : batchCount > 1 ? `Generate ${batchCount} images` : 'Generate'}
           </>
         )}
       </button>

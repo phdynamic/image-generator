@@ -102,6 +102,31 @@ export async function getPromptHistory(): Promise<string[]> {
   return handleResponse<string[]>(response)
 }
 
+export interface PromptTemplate {
+  name: string
+  prompt: string
+  placeholder: string
+}
+
+export interface TemplateCategory {
+  category: string
+  templates: PromptTemplate[]
+}
+
+export async function getTemplates(): Promise<TemplateCategory[]> {
+  const response = await fetch(`${API_BASE}/templates`)
+  return handleResponse<TemplateCategory[]>(response)
+}
+
+export async function enhancePrompt(prompt: string, style: string = 'general'): Promise<{ enhanced: string }> {
+  const response = await fetch(`${API_BASE}/enhance-prompt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, style }),
+  })
+  return handleResponse<{ enhanced: string }>(response)
+}
+
 export function getImageUrl(image: GeneratedImage): string {
   return `/outputs/images/${image.file_path}`
 }

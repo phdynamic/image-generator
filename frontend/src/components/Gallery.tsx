@@ -2,11 +2,15 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Star, Image as ImageIcon, ArrowUpDown, CheckSquare, Square, Trash2, X } from 'lucide-react'
 import { getImages, getModels, toggleFavorite, deleteImage, batchDeleteImages } from '../lib/api'
-import type { GeneratedImage } from '../lib/types'
+import type { GeneratedImage, GenerateRequest } from '../lib/types'
 import ImageCard from './ImageCard'
 import ImageViewer from './ImageViewer'
 
-export default function Gallery() {
+interface GalleryProps {
+  onRegenerate?: (request: GenerateRequest) => void
+}
+
+export default function Gallery({ onRegenerate }: GalleryProps) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -249,6 +253,7 @@ export default function Gallery() {
           onToggleFavorite={(id) => favoriteMutation.mutate(id)}
           onDelete={handleDelete}
           onImageChanged={() => queryClient.invalidateQueries({ queryKey: ['images'] })}
+          onRegenerate={onRegenerate}
         />
       )}
     </div>

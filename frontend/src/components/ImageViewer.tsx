@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useState } from 'react'
-import { X, Download, Heart, Trash2, Copy, Send, ZoomIn, Loader2 } from 'lucide-react'
-import type { GeneratedImage } from '../lib/types'
+import { X, Download, Heart, Trash2, Copy, Send, ZoomIn, Loader2, RefreshCw } from 'lucide-react'
+import type { GeneratedImage, GenerateRequest } from '../lib/types'
 import { getImageUrl, upscaleImage } from '../lib/api'
 
 interface ImageViewerProps {
@@ -9,9 +9,10 @@ interface ImageViewerProps {
   onToggleFavorite: (id: number) => void
   onDelete: (id: number) => void
   onImageChanged?: () => void
+  onRegenerate?: (request: GenerateRequest) => void
 }
 
-export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete, onImageChanged }: ImageViewerProps) {
+export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete, onImageChanged, onRegenerate }: ImageViewerProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -95,6 +96,20 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
       setUpscaleStatus('error')
       setTimeout(() => setUpscaleStatus('idle'), 3000)
     }
+  }
+
+  const handleRegenerate = () => {
+    if (!onRegenerate) return
+    onRegenerate({
+      prompt: image.prompt,
+      negative_prompt: image.negative_prompt || undefined,
+      model_id: image.model_id,
+      steps: image.steps,
+      cfg_scale: image.cfg_scale,
+      width: image.width,
+      height: image.height,
+    })
+    onClose()
   }
 
   const createdDate = new Date(image.created_at).toLocaleString()
@@ -182,6 +197,16 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
 
           {/* Actions */}
           <div className="p-4 border-t border-slate-700 flex flex-wrap gap-2">
+            {onRegenerate && (
+              <button
+                onClick={handleRegenerate}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors text-sm text-white"
+                title="Generate similar with new seed"
+              >
+                <RefreshCw size={16} />
+                Re-generate
+              </button>
+            )}
             <button
               onClick={handleDownload}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm text-white"

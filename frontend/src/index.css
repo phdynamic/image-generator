@@ -6,6 +6,11 @@ body {
   margin: 0;
 }
 
+.light body {
+  @apply bg-slate-100 text-slate-900;
+}
+
+/* Dark scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -20,4 +25,77 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-slate-500;
+}
+
+.light ::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+
+/* Light theme overrides for common UI elements */
+.light .bg-slate-800 {
+  @apply !bg-white;
+}
+
+.light .bg-slate-800\/80 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.light .bg-slate-800\/50 {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.light .bg-slate-900 {
+  @apply !bg-slate-100;
+}
+
+.light .bg-slate-700 {
+  @apply !bg-slate-200;
+}
+
+.light .bg-slate-700\/50 {
+  background-color: rgba(226, 232, 240, 0.5) !important;
+}
+
+.light .bg-slate-700\/30 {
+  background-color: rgba(226, 232, 240, 0.3) !important;
+}
+
+.light .border-slate-700 {
+  @apply !border-slate-200;
+}
+
+.light .border-slate-600 {
+  @apply !border-slate-300;
+}
+
+.light .text-white {
+  @apply !text-slate-900;
+}
+
+.light .text-slate-400 {
+  @apply !text-slate-500;
+}
+
+.light .text-slate-300 {
+  @apply !text-slate-600;
+}
+
+.light .text-slate-500 {
+  @apply !text-slate-400;
+}
+
+.light .placeholder-slate-400::placeholder {
+  @apply !text-slate-400;
+}
+
+.light .placeholder-slate-500::placeholder {
+  @apply !text-slate-400;
+}
+
+.light select option {
+  @apply bg-white text-slate-900;
 }
