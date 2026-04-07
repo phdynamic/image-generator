@@ -3,6 +3,7 @@ import time
 from typing import Callable
 
 import torch
+from PIL import Image
 
 from ..config import settings
 from ..utils.image_utils import save_image, create_thumbnail
@@ -24,10 +25,11 @@ class ImageGenerator:
         cfg_scale: float = 7.5,
         width: int = 512,
         height: int = 512,
+        input_image: Image.Image | None = None,
+        strength: float = 0.75,
         progress_callback: Callable | None = None,
     ) -> dict:
         self.model_manager.load_model(model_id)
-        pipeline = self.model_manager.get_pipeline()
 
         device = get_device()
         generator = torch.Generator(device=device).manual_seed(seed)
@@ -39,16 +41,35 @@ class ImageGenerator:
 
         start_time = time.time()
 
-        result = pipeline(
-            prompt=prompt,
-            negative_prompt=negative_prompt if negative_prompt else None,
-            num_inference_steps=steps,
-            guidance_scale=cfg_scale,
-            width=width,
-            height=height,
-            generator=generator,
-            callback_on_step_end=step_callback,
-        )
+        if input_image is not None:
+            # img2img mode
+            pipeline = self.model_manager.get_img2img_pipeline()
+            input_image = input_image.convert("RGB").resize((width, height))
+
+            result = pipeline(
+                prompt=prompt,
+                negative_prompt=negative_prompt if negative_prompt else None,
+                image=input_image,
+                strength=strength,
+                num_inference_steps=steps,
+                guidance_scale=cfg_scale,
+                generator=generator,
+                callback_on_step_end=step_callback,
+            )
+        else:
+            # text2img mode
+            pipeline = self.model_manager.get_pipeline()
+
+            result = pipeline(
+                prompt=prompt,
+                negative_prompt=negative_prompt if negative_prompt else None,
+                num_inference_steps=steps,
+                guidance_scale=cfg_scale,
+                width=width,
+                height=height,
+                generator=generator,
+                callback_on_step_end=step_callback,
+            )
 
         generation_time = time.time() - start_time
         image = result.images[0]

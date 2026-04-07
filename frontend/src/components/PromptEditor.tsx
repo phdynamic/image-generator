@@ -1,5 +1,5 @@
-import { useState, forwardRef, useImperativeHandle } from 'react'
-import { Sparkles, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import { Sparkles, ChevronDown, ChevronUp, Loader2, Upload, X } from 'lucide-react'
 import type { GenerateRequest } from '../lib/types'
 
 export interface PromptEditorHandle {
@@ -21,6 +21,26 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
   const [width, setWidth] = useState(512)
   const [height, setHeight] = useState(512)
   const [seed, setSeed] = useState(-1)
+  const [inputImage, setInputImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [strength, setStrength] = useState(0.75)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setInputImage(file)
+      const reader = new FileReader()
+      reader.onload = () => setImagePreview(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const clearImage = () => {
+    setInputImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +56,10 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
     if (negativePrompt.trim()) request.negative_prompt = negativePrompt.trim()
     if (selectedModel) request.model_id = selectedModel
     if (seed !== -1) request.seed = seed
+    if (inputImage) {
+      request.input_image = inputImage
+      request.strength = strength
+    }
 
     onGenerate(request)
   }
@@ -56,6 +80,57 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
           rows={4}
           className="w-full bg-slate-800 border border-slate-600 rounded-xl p-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none text-lg"
         />
+      </div>
+
+      {/* Image-to-image upload */}
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+        {imagePreview ? (
+          <div className="relative bg-slate-800 border border-slate-600 rounded-xl p-3">
+            <div className="flex items-start gap-3">
+              <img src={imagePreview} alt="Input" className="w-20 h-20 object-cover rounded-lg" />
+              <div className="flex-1">
+                <p className="text-sm text-slate-300 mb-2">Image-to-Image mode</p>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">
+                    Strength: {strength.toFixed(2)} <span className="text-slate-500">(higher = more change)</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    value={strength}
+                    onChange={(e) => setStrength(Number(e.target.value))}
+                    className="w-full accent-violet-500"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearImage}
+                className="p-1 rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                <X size={16} className="text-slate-400" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-800/50 border border-dashed border-slate-600 rounded-xl text-sm text-slate-400 hover:text-white hover:border-violet-500/50 transition-colors"
+          >
+            <Upload size={16} />
+            Upload image for img2img
+          </button>
+        )}
       </div>
 
       <button
@@ -165,7 +240,7 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
         ) : (
           <>
             <Sparkles size={20} />
-            Generate
+            {inputImage ? 'Generate (img2img)' : 'Generate'}
           </>
         )}
       </button>

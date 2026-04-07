@@ -11,10 +11,28 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function generateImage(request: GenerateRequest): Promise<GeneratedImage> {
+  const formData = new FormData()
+  formData.append('prompt', request.prompt)
+  if (request.negative_prompt) formData.append('negative_prompt', request.negative_prompt)
+  if (request.model_id) formData.append('model_id', request.model_id)
+  if (request.seed !== undefined) formData.append('seed', String(request.seed))
+  if (request.steps !== undefined) formData.append('steps', String(request.steps))
+  if (request.cfg_scale !== undefined) formData.append('cfg_scale', String(request.cfg_scale))
+  if (request.width !== undefined) formData.append('width', String(request.width))
+  if (request.height !== undefined) formData.append('height', String(request.height))
+  if (request.strength !== undefined) formData.append('strength', String(request.strength))
+  if (request.input_image) formData.append('input_image', request.input_image)
+
   const response = await fetch(`${API_BASE}/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
+    body: formData,
+  })
+  return handleResponse<GeneratedImage>(response)
+}
+
+export async function upscaleImage(imageId: number, scale: number = 2): Promise<GeneratedImage> {
+  const response = await fetch(`${API_BASE}/upscale/${imageId}?scale=${scale}`, {
+    method: 'POST',
   })
   return handleResponse<GeneratedImage>(response)
 }

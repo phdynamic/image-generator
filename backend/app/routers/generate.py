@@ -1,8 +1,9 @@
 import random
 
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Request, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from PIL import Image
+import io
 
 from ..config import settings
 from ..database import get_db
@@ -12,50 +13,60 @@ from .websocket import manager
 router = APIRouter(prefix="/api")
 
 
-class GenerateRequest(BaseModel):
-    prompt: str
-    negative_prompt: str = ""
-    model_id: str = settings.DEFAULT_MODEL
-    seed: int = -1
-    steps: int = 30
-    cfg_scale: float = 7.5
-    width: int = 512
-    height: int = 512
-
-
 def _broadcast_progress(step: int, total_steps: int):
     manager.broadcast_sync({"step": step, "total_steps": total_steps})
 
 
 @router.post("/generate")
-def generate_image(req: GenerateRequest, request: Request, db: Session = Depends(get_db)):
+def generate_image(
+    request: Request,
+    db: Session = Depends(get_db),
+    prompt: str = Form(...),
+    negative_prompt: str = Form(""),
+    model_id: str = Form(settings.DEFAULT_MODEL),
+    seed: int = Form(-1),
+    steps: int = Form(30),
+    cfg_scale: float = Form(7.5),
+    width: int = Form(512),
+    height: int = Form(512),
+    strength: float = Form(0.75),
+    input_image: UploadFile | None = File(None),
+):
     generator = request.app.state.generator
 
-    seed = req.seed if req.seed != -1 else random.randint(0, 2**32 - 1)
-    width = min(req.width, settings.MAX_IMAGE_SIZE)
-    height = min(req.height, settings.MAX_IMAGE_SIZE)
+    actual_seed = seed if seed != -1 else random.randint(0, 2**32 - 1)
+    actual_width = min(width, settings.MAX_IMAGE_SIZE)
+    actual_height = min(height, settings.MAX_IMAGE_SIZE)
+
+    # Load input image if provided
+    pil_image = None
+    if input_image is not None and input_image.size > 0:
+        image_data = input_image.file.read()
+        pil_image = Image.open(io.BytesIO(image_data))
 
     result = generator.generate(
-        prompt=req.prompt,
-        negative_prompt=req.negative_prompt,
-        model_id=req.model_id,
-        seed=seed,
-        steps=req.steps,
-        cfg_scale=req.cfg_scale,
-        width=width,
-        height=height,
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        model_id=model_id,
+        seed=actual_seed,
+        steps=steps,
+        cfg_scale=cfg_scale,
+        width=actual_width,
+        height=actual_height,
+        input_image=pil_image,
+        strength=strength,
         progress_callback=_broadcast_progress,
     )
 
     image_record = GeneratedImage(
-        prompt=req.prompt,
-        negative_prompt=req.negative_prompt or None,
-        model_id=req.model_id,
+        prompt=prompt,
+        negative_prompt=negative_prompt or None,
+        model_id=model_id,
         seed=result["seed"],
-        steps=req.steps,
-        cfg_scale=req.cfg_scale,
-        width=width,
-        height=height,
+        steps=steps,
+        cfg_scale=cfg_scale,
+        width=actual_width,
+        height=actual_height,
         file_path=result["file_path"],
         thumbnail_path=result["thumbnail_path"],
         generation_time=result["generation_time"],

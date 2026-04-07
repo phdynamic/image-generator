@@ -1,7 +1,12 @@
 import threading
 
 import torch
-from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
+from diffusers import (
+    StableDiffusionPipeline,
+    StableDiffusionXLPipeline,
+    StableDiffusionImg2ImgPipeline,
+    StableDiffusionXLImg2ImgPipeline,
+)
 
 from ..config import settings
 from ..utils.gpu_utils import get_device, clear_vram
@@ -17,6 +22,7 @@ class ModelManager:
                 cls._instance = super().__new__(cls)
                 cls._instance.current_model_id = None
                 cls._instance.pipeline = None
+                cls._instance.img2img_pipeline = None
             return cls._instance
 
     def load_model(self, model_id: str):
@@ -25,10 +31,9 @@ class ModelManager:
 
         self.unload_model()
 
-        if "xl" in model_id.lower() or "ssd" in model_id.lower():
-            pipe_cls = StableDiffusionXLPipeline
-        else:
-            pipe_cls = StableDiffusionPipeline
+        is_xl = "xl" in model_id.lower() or "ssd" in model_id.lower()
+        pipe_cls = StableDiffusionXLPipeline if is_xl else StableDiffusionPipeline
+        img2img_cls = StableDiffusionXLImg2ImgPipeline if is_xl else StableDiffusionImg2ImgPipeline
 
         self.pipeline = pipe_cls.from_pretrained(
             model_id,
@@ -39,12 +44,18 @@ class ModelManager:
         device = get_device()
         self.pipeline = self.pipeline.to(device)
         self.pipeline.enable_attention_slicing()
+
+        # Create img2img pipeline sharing the same model components
+        self.img2img_pipeline = img2img_cls(**self.pipeline.components)
+
         self.current_model_id = model_id
 
     def unload_model(self):
         if self.pipeline is not None:
             del self.pipeline
+            del self.img2img_pipeline
             self.pipeline = None
+            self.img2img_pipeline = None
             self.current_model_id = None
             clear_vram()
 
@@ -52,6 +63,11 @@ class ModelManager:
         if self.pipeline is None:
             raise RuntimeError("No model is currently loaded. Call load_model() first.")
         return self.pipeline
+
+    def get_img2img_pipeline(self):
+        if self.img2img_pipeline is None:
+            raise RuntimeError("No model is currently loaded. Call load_model() first.")
+        return self.img2img_pipeline
 
     @staticmethod
     def get_available_models() -> list[dict]:

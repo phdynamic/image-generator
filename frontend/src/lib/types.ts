@@ -24,6 +24,8 @@ export interface GenerateRequest {
   cfg_scale?: number
   width?: number
   height?: number
+  input_image?: File
+  strength?: number
 }
 
 export interface PaginatedImages {

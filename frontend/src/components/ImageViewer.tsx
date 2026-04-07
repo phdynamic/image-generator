@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState } from 'react'
-import { X, Download, Heart, Trash2, Copy, Send } from 'lucide-react'
+import { X, Download, Heart, Trash2, Copy, Send, ZoomIn, Loader2 } from 'lucide-react'
 import type { GeneratedImage } from '../lib/types'
-import { getImageUrl } from '../lib/api'
+import { getImageUrl, upscaleImage } from '../lib/api'
 
 interface ImageViewerProps {
   image: GeneratedImage
@@ -78,6 +78,20 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
       setStashlyStatus('error')
       setStashlyError(e.message === 'Failed to fetch' ? 'Stashly not running' : e.message)
       setTimeout(() => setStashlyStatus('idle'), 3000)
+    }
+  }
+
+  const [upscaleStatus, setUpscaleStatus] = useState<'idle' | 'upscaling' | 'done' | 'error'>('idle')
+
+  const handleUpscale = async (scale: number) => {
+    setUpscaleStatus('upscaling')
+    try {
+      await upscaleImage(image.id, scale)
+      setUpscaleStatus('done')
+      setTimeout(() => setUpscaleStatus('idle'), 2000)
+    } catch {
+      setUpscaleStatus('error')
+      setTimeout(() => setUpscaleStatus('idle'), 3000)
     }
   }
 
@@ -196,6 +210,21 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
             >
               <Send size={16} />
               {stashlyStatus === 'sending' ? '...' : stashlyStatus === 'sent' ? 'Sent!' : stashlyStatus === 'error' ? stashlyError : 'Stash'}
+            </button>
+            <button
+              onClick={() => handleUpscale(2)}
+              disabled={upscaleStatus === 'upscaling'}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-colors text-sm ${
+                upscaleStatus === 'done'
+                  ? 'bg-emerald-700 text-white'
+                  : upscaleStatus === 'error'
+                  ? 'bg-red-700 text-white'
+                  : 'bg-slate-700 hover:bg-slate-600 text-white'
+              }`}
+              title="Upscale image 2x"
+            >
+              {upscaleStatus === 'upscaling' ? <Loader2 size={16} className="animate-spin" /> : <ZoomIn size={16} />}
+              {upscaleStatus === 'done' ? 'Done!' : upscaleStatus === 'error' ? 'Error' : '2x'}
             </button>
             <button
               onClick={() => onToggleFavorite(image.id)}

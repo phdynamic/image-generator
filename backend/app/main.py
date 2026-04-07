@@ -12,7 +12,7 @@ from .config import settings
 from .database import engine, Base
 from .services.model_manager import ModelManager
 from .services.generator import ImageGenerator
-from .routers import generate, gallery, models_router, websocket
+from .routers import generate, gallery, models_router, websocket, upscale
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ app.include_router(generate.router)
 app.include_router(gallery.router)
 app.include_router(models_router.router)
 app.include_router(websocket.router)
+app.include_router(upscale.router)
 
 # Output file mounts
 app.mount("/outputs/images", StaticFiles(directory=settings.OUTPUTS_DIR), name="images")
