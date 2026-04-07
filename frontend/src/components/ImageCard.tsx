@@ -1,4 +1,4 @@
-import { Heart, Trash2, Expand, CheckSquare, Square } from 'lucide-react'
+import { Heart, Trash2, Expand, CheckSquare } from 'lucide-react'
 import type { GeneratedImage } from '../lib/types'
 import { getThumbnailUrl, getImageUrl } from '../lib/api'
 
@@ -45,8 +45,8 @@ export default function ImageCard({ image, onView, onToggleFavorite, onDelete, s
       {selectable && (
         <div className="absolute top-2 left-2 z-10">
           {selected
-            ? <CheckSquare size={20} className="text-violet-400 drop-shadow-lg" />
-            : <Square size={20} className="text-white/70 drop-shadow-lg" />
+            ? <div className="w-6 h-6 rounded bg-violet-500 border-2 border-white flex items-center justify-center shadow-md shadow-black/50"><CheckSquare size={16} className="text-white" /></div>
+            : <div className="w-6 h-6 rounded bg-black/40 border-2 border-white shadow-md shadow-black/50" />
           }
         </div>
       )}

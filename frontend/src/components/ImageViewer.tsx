@@ -8,9 +8,10 @@ interface ImageViewerProps {
   onClose: () => void
   onToggleFavorite: (id: number) => void
   onDelete: (id: number) => void
+  onImageChanged?: () => void
 }
 
-export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete }: ImageViewerProps) {
+export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete, onImageChanged }: ImageViewerProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -88,6 +89,7 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
     try {
       await upscaleImage(image.id, scale)
       setUpscaleStatus('done')
+      onImageChanged?.()
       setTimeout(() => setUpscaleStatus('idle'), 2000)
     } catch {
       setUpscaleStatus('error')

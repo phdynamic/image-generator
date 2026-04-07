@@ -87,41 +87,44 @@ export default function Gallery() {
   return (
     <div className="space-y-4">
       {/* Search and filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <form onSubmit={handleSearch} className="flex-1 min-w-48 relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search prompts..."
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          />
-        </form>
+      <div>
+        <label className="block text-sm text-slate-400 mb-1">Gallery</label>
+        <div className="flex flex-wrap gap-3 items-center">
+          <form onSubmit={handleSearch} className="flex-1 min-w-48 relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search prompts..."
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            />
+          </form>
 
-        <button
-          onClick={() => { setFavoritesOnly(!favoritesOnly); setPage(1) }}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors border ${
-            favoritesOnly
-              ? 'bg-violet-600 border-violet-500 text-white'
-              : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'
-          }`}
-        >
-          <Star size={14} className={favoritesOnly ? 'fill-white' : ''} />
-          Favorites
-        </button>
+          <button
+            onClick={() => { setFavoritesOnly(!favoritesOnly); setPage(1) }}
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm transition-colors border ${
+              favoritesOnly
+                ? 'bg-violet-600 border-violet-500 text-white'
+                : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'
+            }`}
+          >
+            <Star size={14} className={favoritesOnly ? 'fill-white' : ''} />
+            Favorites
+          </button>
 
-        <button
-          onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()) }}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors border ${
-            selectMode
-              ? 'bg-violet-600 border-violet-500 text-white'
-              : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'
-          }`}
-        >
-          <CheckSquare size={14} />
-          Select
-        </button>
+          <button
+            onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()) }}
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm transition-colors border ${
+              selectMode
+                ? 'bg-violet-600 border-violet-500 text-white'
+                : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'
+            }`}
+          >
+            <CheckSquare size={14} />
+            Select
+          </button>
+        </div>
       </div>
 
       {/* Sort and model filter row */}
@@ -245,6 +248,7 @@ export default function Gallery() {
           onClose={() => setViewingImage(null)}
           onToggleFavorite={(id) => favoriteMutation.mutate(id)}
           onDelete={handleDelete}
+          onImageChanged={() => queryClient.invalidateQueries({ queryKey: ['images'] })}
         />
       )}
     </div>
