@@ -116,3 +116,24 @@ body {
 .light .bg-emerald-700 {
   color: white !important;
 }
+
+/* Light mode accent color: use violet-600 to match Generate button */
+.light .text-violet-400 {
+  color: rgb(124, 58, 237) !important; /* violet-600 */
+}
+
+.light .text-violet-500 {
+  color: rgb(124, 58, 237) !important;
+}
+
+.light .hover\:text-violet-300:hover {
+  color: rgb(109, 40, 217) !important; /* violet-700 */
+}
+
+.light .border-violet-500\/50 {
+  border-color: rgba(124, 58, 237, 0.5) !important;
+}
+
+.light .hover\:border-violet-500\/50:hover {
+  border-color: rgba(124, 58, 237, 0.5) !important;
+}

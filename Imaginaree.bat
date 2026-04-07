@@ -8,3 +8,4 @@ if errorlevel 1 (
     echo ERROR: Imaginaree failed to start. See above for details.
     pause
 )
+exit
