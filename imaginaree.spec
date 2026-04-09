@@ -6,8 +6,7 @@ block_cipher = None
 # Paths
 backend_dir = os.path.join(os.getcwd(), 'backend')
 static_dir = os.path.join(backend_dir, 'static')
-outputs_images = os.path.join(os.getcwd(), 'outputs', 'images')
-outputs_thumbnails = os.path.join(os.getcwd(), 'outputs', 'thumbnails')
+icon_path = os.path.join(os.getcwd(), 'star.ico')
 
 a = Analysis(
     ['run_app.py'],
@@ -15,6 +14,7 @@ a = Analysis(
     binaries=[],
     datas=[
         (static_dir, 'static'),
+        (icon_path, '.'),
     ],
     hiddenimports=[
         'app',
@@ -28,9 +28,12 @@ a = Analysis(
         'app.routers.gallery',
         'app.routers.models_router',
         'app.routers.websocket',
+        'app.routers.upscale',
+        'app.routers.prompts',
         'app.services',
         'app.services.model_manager',
         'app.services.generator',
+        'app.services.upscaler',
         'app.utils',
         'app.utils.image_utils',
         'app.utils.gpu_utils',
@@ -55,12 +58,11 @@ a = Analysis(
         'sqlalchemy.dialects.sqlite',
         'pydantic',
         'pydantic_settings',
-        'webview',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['webview', 'pywebview'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -80,7 +82,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,  # No terminal window
-    icon=None,  # Can add an .ico file later
+    icon=icon_path,
 )
 
 coll = COLLECT(
