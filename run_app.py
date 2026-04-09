@@ -10,10 +10,10 @@ if getattr(sys, 'frozen', False):
     app_dir = os.path.dirname(sys.executable)
     os.chdir(app_dir)
     sys.path.insert(0, app_dir)
-    # Also suppress stdout/stderr since we're windowed (console=False)
-    # Otherwise print() calls can cause issues
-    sys.stdout = open(os.devnull, 'w')
-    sys.stderr = open(os.devnull, 'w')
+    # Redirect stdout/stderr to a log file so we can debug issues
+    log_file = os.path.join(app_dir, 'imaginaree.log')
+    sys.stdout = open(log_file, 'w', buffering=1)
+    sys.stderr = sys.stdout
 else:
     # Running in development
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -42,8 +42,7 @@ def main():
     threading.Thread(target=open_browser, daemon=True).start()
 
     # Run the server (blocks until killed)
-    log_level = "critical" if getattr(sys, 'frozen', False) else "info"
-    uvicorn.run("app.main:app", host=HOST, port=PORT, log_level=log_level)
+    uvicorn.run("app.main:app", host=HOST, port=PORT, log_level="info")
 
 
 if __name__ == "__main__":
