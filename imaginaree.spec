@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from PyInstaller.utils.hooks import copy_metadata, collect_data_files
 
 block_cipher = None
 
@@ -8,14 +9,47 @@ backend_dir = os.path.join(os.getcwd(), 'backend')
 static_dir = os.path.join(backend_dir, 'static')
 icon_path = os.path.join(os.getcwd(), 'star.ico')
 
+# Packages whose metadata diffusers/transformers check at runtime
+metadata_packages = [
+    'requests',
+    'filelock',
+    'numpy',
+    'packaging',
+    'pyyaml',
+    'regex',
+    'tokenizers',
+    'safetensors',
+    'huggingface-hub',
+    'transformers',
+    'diffusers',
+    'importlib_metadata',
+    'tqdm',
+    'Pillow',
+]
+
+datas = [
+    (static_dir, 'static'),
+    (icon_path, '.'),
+]
+
+for pkg in metadata_packages:
+    try:
+        datas += copy_metadata(pkg)
+    except Exception:
+        pass
+
+# Collect data files from packages that ship config files
+for pkg in ['diffusers', 'transformers', 'huggingface_hub']:
+    try:
+        datas += collect_data_files(pkg)
+    except Exception:
+        pass
+
 a = Analysis(
     ['run_app.py'],
     pathex=[backend_dir],
     binaries=[],
-    datas=[
-        (static_dir, 'static'),
-        (icon_path, '.'),
-    ],
+    datas=datas,
     hiddenimports=[
         'app',
         'app.main',
@@ -54,6 +88,11 @@ a = Analysis(
         'accelerate',
         'safetensors',
         'huggingface_hub',
+        'requests',
+        'filelock',
+        'tqdm',
+        'regex',
+        'tokenizers',
         'sqlalchemy',
         'sqlalchemy.dialects.sqlite',
         'pydantic',
