@@ -18,14 +18,24 @@ logger = logging.getLogger(__name__)
 
 
 def _get_static_dir() -> Path | None:
+    candidates = []
     if getattr(sys, 'frozen', False):
-        d = Path(sys.executable).parent / "static"
+        exe_dir = Path(sys.executable).parent
+        # PyInstaller 6.x puts datas in _internal/ subdirectory
+        candidates.append(exe_dir / "_internal" / "static")
+        candidates.append(exe_dir / "static")
+        # sys._MEIPASS is the runtime temp dir where onefile extracts
+        meipass = getattr(sys, '_MEIPASS', None)
+        if meipass:
+            candidates.append(Path(meipass) / "static")
     else:
-        d = Path(__file__).resolve().parent.parent / "static"
-    if d.exists() and (d / "index.html").exists():
-        logger.info(f"Serving frontend from: {d}")
-        return d
-    logger.warning(f"Frontend static dir not found at: {d}")
+        candidates.append(Path(__file__).resolve().parent.parent / "static")
+
+    for d in candidates:
+        if d.exists() and (d / "index.html").exists():
+            logger.info(f"Serving frontend from: {d}")
+            return d
+    logger.warning(f"Frontend static dir not found. Checked: {[str(c) for c in candidates]}")
     return None
 
 

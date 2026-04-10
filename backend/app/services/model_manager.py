@@ -37,11 +37,18 @@ class ModelManager:
             pipe_cls = StableDiffusionXLPipeline if is_xl else StableDiffusionPipeline
             img2img_cls = StableDiffusionXLImg2ImgPipeline if is_xl else StableDiffusionImg2ImgPipeline
 
-            self.pipeline = pipe_cls.from_pretrained(
-                model_id,
-                torch_dtype=torch.float16,
-                cache_dir=settings.MODELS_CACHE_DIR,
-            )
+            # Disable safety checker: not needed for personal use and it
+            # requires reading diffusers .py source files at runtime, which
+            # fails inside a PyInstaller frozen bundle.
+            kwargs = {
+                "torch_dtype": torch.float16,
+                "cache_dir": settings.MODELS_CACHE_DIR,
+            }
+            if not is_xl:
+                kwargs["safety_checker"] = None
+                kwargs["requires_safety_checker"] = False
+
+            self.pipeline = pipe_cls.from_pretrained(model_id, **kwargs)
 
             device = get_device()
             self.pipeline = self.pipeline.to(device)

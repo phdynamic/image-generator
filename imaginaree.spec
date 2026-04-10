@@ -45,6 +45,15 @@ for pkg in ['diffusers', 'transformers', 'huggingface_hub']:
     except Exception:
         pass
 
+# Also include the .py source files from diffusers and transformers so
+# that runtime source-code inspection (e.g. experts implementation checks)
+# works inside the frozen bundle.
+for pkg in ['diffusers', 'transformers']:
+    try:
+        datas += collect_data_files(pkg, include_py_files=True)
+    except Exception:
+        pass
+
 a = Analysis(
     ['run_app.py'],
     pathex=[backend_dir],
