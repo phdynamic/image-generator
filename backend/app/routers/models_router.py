@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 
 from ..config import settings
 from ..services.model_manager import ModelManager
-from ..utils.gpu_utils import get_vram_info, get_device
+from ..utils.gpu_utils import get_device, get_gpu_name, get_vram_info
 
 
 router = APIRouter(prefix="/api")
@@ -42,6 +42,7 @@ def list_models(request: Request):
 def gpu_status(request: Request):
     return {
         "device": get_device(),
+        "name": get_gpu_name(),
         "vram": get_vram_info(),
         "current_model": _get_current_model_id(request),
     }

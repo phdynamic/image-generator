@@ -2,7 +2,7 @@ import sys
 import os
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _get_app_root() -> Path:
@@ -20,6 +20,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(APP_ROOT / ".env"),
+        extra="ignore",
+    )
+
     APP_NAME: str = "Imaginaree"
     DATABASE_URL: str = f"sqlite:///{APP_ROOT / 'imaginaree.db'}"
     OUTPUTS_DIR: str = str(APP_ROOT / "outputs" / "images")
@@ -30,8 +35,21 @@ class Settings(BaseSettings):
     THUMBNAIL_SIZE: int = 256
     HF_TOKEN: str = ""
 
-    class Config:
-        env_file = ".env"
+    # Server
+    APP_HOST: str = "127.0.0.1"
+    APP_PORT: int = 8000
+    OPEN_BROWSER: bool = True
+
+    # Access control. When APP_PASSWORD_HASH is set, every API call, image and
+    # WebSocket requires a signed-in session. PUBLIC_MODE=true refuses to start
+    # without a password, so the app can't be exposed by accident.
+    PUBLIC_MODE: bool = False
+    APP_PASSWORD_HASH: str = ""
+    SESSION_SECRET: str = ""
+    SESSION_HOURS: int = 24 * 14
+
+    # GPU memory strategy: "auto" picks from free VRAM, or force "always"/"never"
+    OFFLOAD: str = "auto"
 
 
 settings = Settings()

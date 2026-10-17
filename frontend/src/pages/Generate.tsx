@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import PromptEditor, { type PromptEditorHandle } from '../components/PromptEditor'
 import ModelSelector from '../components/ModelSelector'
 import ProgressBar, { type ProgressBarHandle } from '../components/ProgressBar'
@@ -6,6 +7,7 @@ import PromptHistory from '../components/PromptHistory'
 import PromptTemplates from '../components/PromptTemplates'
 import Gallery from '../components/Gallery'
 import { useGeneration } from '../hooks/useGeneration'
+import { getModels } from '../lib/api'
 import type { GenerateRequest } from '../lib/types'
 
 export default function Generate() {
@@ -16,6 +18,10 @@ export default function Generate() {
     progressRef.current?.clear()
   })
 
+  const { data: models } = useQuery({ queryKey: ['models'], queryFn: getModels })
+  const activeModelId = selectedModel || models?.[0]?.id || ''
+  const activeModel = models?.find((m) => m.id === activeModelId)
+
   const handleRegenerate = (request: GenerateRequest) => {
     generate(request)
   }
@@ -25,12 +31,13 @@ export default function Generate() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left panel: controls */}
         <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
-          <ModelSelector value={selectedModel} onChange={setSelectedModel} />
+          <ModelSelector value={activeModelId} onChange={setSelectedModel} />
           <PromptEditor
             ref={promptEditorRef}
             onGenerate={generate}
             isGenerating={isGenerating}
-            selectedModel={selectedModel || undefined}
+            selectedModel={activeModelId || undefined}
+            modelInfo={activeModel}
           />
           <ProgressBar ref={progressRef} isGenerating={isGenerating} />
           {error && (

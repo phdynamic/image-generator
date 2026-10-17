@@ -29,6 +29,8 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
     )
   }
 
+  const selected = models.find((m) => m.id === value)
+
   return (
     <div>
       <label className="block text-sm text-slate-400 mb-1">Model</label>
@@ -40,20 +42,25 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
         >
           {models.map((model) => (
             <option key={model.id} value={model.id}>
-              {model.is_loaded ? '\u25CF ' : ''}{model.name} ({model.vram}){model.is_cached ? '' : ' \u2913'}
+              {model.is_loaded ? '● ' : ''}{model.name} ({model.vram}){model.is_cached ? '' : ' ⤓'}
             </option>
           ))}
         </select>
         <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
       </div>
-      {/* Status indicator below dropdown */}
-      {value && models.find(m => m.id === value) && (
-        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500">
-          {models.find(m => m.id === value)!.is_cached ? (
-            <><HardDrive size={12} /> Downloaded locally</>
-          ) : (
-            <><Download size={12} /> Will download on first use</>
-          )}
+      {selected && (
+        <div className="mt-1.5 space-y-1 text-xs text-slate-500">
+          <p>{selected.description}</p>
+          <p className="flex items-center gap-1.5">
+            {selected.is_cached ? (
+              <><HardDrive size={12} /> Downloaded locally</>
+            ) : (
+              <>
+                <Download size={12} /> Will download on first use
+                {selected.download_gb ? ` (~${selected.download_gb} GB)` : ''}
+              </>
+            )}
+          </p>
         </div>
       )}
     </div>

@@ -45,3 +45,5 @@ dist/
 build/
 *.spec.bak
 
+.session_secret
+.pytest_cache/

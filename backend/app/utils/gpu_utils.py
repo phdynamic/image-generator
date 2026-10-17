@@ -1,19 +1,31 @@
-import torch
+try:
+    import torch
+except ImportError:  # lets the API start (e.g. in tests) without PyTorch
+    torch = None
+
+
+def cuda_available() -> bool:
+    return torch is not None and torch.cuda.is_available()
 
 
 def get_device() -> str:
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    return "cuda" if cuda_available() else "cpu"
+
+
+def get_gpu_name() -> str | None:
+    if not cuda_available():
+        return None
+    return torch.cuda.get_device_name(0)
 
 
 def get_vram_info() -> dict | None:
-    if not torch.cuda.is_available():
+    """System-wide VRAM, so memory used by other programs is counted."""
+    if not cuda_available():
         return None
-    total = torch.cuda.get_device_properties(0).total_memory
-    used = torch.cuda.memory_allocated(0)
-    free = total - used
-    return {"total": total, "used": used, "free": free}
+    free, total = torch.cuda.mem_get_info(0)
+    return {"total": total, "used": total - free, "free": free}
 
 
 def clear_vram():
-    if torch.cuda.is_available():
+    if cuda_available():
         torch.cuda.empty_cache()

@@ -21,28 +21,34 @@ else:
 
 import uvicorn
 
-HOST = "127.0.0.1"
-PORT = 8000
-URL = f"http://{HOST}:{PORT}"
+from app.auth import assert_safe_config
+from app.config import settings
 
 
-def open_browser():
+def open_browser(url: str):
     """Wait for the server to start, then open the browser."""
     time.sleep(2)
     try:
-        print(f"\n  Imaginaree is running at {URL}")
-        print("  Close this window to stop the app.\n")
+        print(f"\n  Imaginaree is running at {url}\n")
     except Exception:
         pass
-    webbrowser.open(URL)
+    webbrowser.open(url)
 
 
 def main():
-    # Open browser in a background thread after server starts
-    threading.Thread(target=open_browser, daemon=True).start()
+    try:
+        assert_safe_config()
+    except RuntimeError as exc:
+        print(f"\n  {exc}\n")
+        sys.exit(1)
+
+    host, port = settings.APP_HOST, settings.APP_PORT
+    if settings.OPEN_BROWSER:
+        url = f"http://{'127.0.0.1' if host in ('0.0.0.0', '::') else host}:{port}"
+        threading.Thread(target=open_browser, args=(url,), daemon=True).start()
 
     # Run the server (blocks until killed)
-    uvicorn.run("app.main:app", host=HOST, port=PORT, log_level="info")
+    uvicorn.run("app.main:app", host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":

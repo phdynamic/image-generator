@@ -1,0 +1,15 @@
+[Unit]
+Description=Cloudflare Tunnel for Imaginaree
+After=network-online.target imaginaree.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Holds TUNNEL_TOKEN (readable only by you)
+EnvironmentFile=%h/.config/imaginaree/cloudflared.env
+ExecStart=@CLOUDFLARED@ tunnel --no-autoupdate run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

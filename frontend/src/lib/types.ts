@@ -43,10 +43,24 @@ export interface ModelInfo {
   description: string
   is_loaded: boolean
   is_cached: boolean
+  default_steps: number
+  default_cfg: number
+  default_size: number
+  max_steps: number
+  fixed_cfg: number | null
+  supports_negative: boolean
+  experimental: boolean
+  download_gb: number | null
 }
 
 export interface GpuStatus {
   device: string
+  name: string | null
   vram: { total: number; used: number; free: number } | null
   current_model: string | null
+}
+
+export interface AuthStatus {
+  auth_required: boolean
+  authenticated: boolean
 }

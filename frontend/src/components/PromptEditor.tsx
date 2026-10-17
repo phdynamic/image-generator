@@ -1,6 +1,6 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Sparkles, ChevronDown, ChevronUp, Loader2, Upload, X, Wand2, Layers } from 'lucide-react'
-import type { GenerateRequest } from '../lib/types'
+import type { GenerateRequest, ModelInfo } from '../lib/types'
 import { enhancePrompt } from '../lib/api'
 
 export interface PromptEditorHandle {
@@ -11,9 +11,10 @@ interface PromptEditorProps {
   onGenerate: (request: GenerateRequest | GenerateRequest[]) => void
   isGenerating: boolean
   selectedModel?: string
+  modelInfo?: ModelInfo
 }
 
-const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGenerate, isGenerating, selectedModel }, ref) => {
+const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGenerate, isGenerating, selectedModel, modelInfo }, ref) => {
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -29,6 +30,20 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
   const [enhanceStyle, setEnhanceStyle] = useState('general')
   const [batchCount, setBatchCount] = useState(1)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Each model has its own sweet spot, so switching models resets the sliders to it.
+  useEffect(() => {
+    if (!modelInfo) return
+    setSteps(modelInfo.default_steps)
+    setCfgScale(modelInfo.default_cfg)
+    setWidth(modelInfo.default_size)
+    setHeight(modelInfo.default_size)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelInfo?.id])
+
+  const cfgLocked = modelInfo?.fixed_cfg != null
+  const negativeUnsupported = modelInfo ? !modelInfo.supports_negative : false
+  const maxSteps = Math.min(50, modelInfo?.max_steps ?? 50)
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -165,9 +180,10 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
             <textarea
               value={negativePrompt}
               onChange={(e) => setNegativePrompt(e.target.value)}
-              placeholder="What to avoid in the image..."
+              placeholder={negativeUnsupported ? 'Not used by this model' : 'What to avoid in the image...'}
+              disabled={negativeUnsupported}
               rows={2}
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none text-sm"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none text-sm disabled:opacity-50"
             />
           </div>
 
@@ -179,7 +195,7 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
               <input
                 type="range"
                 min={1}
-                max={50}
+                max={maxSteps}
                 value={steps}
                 onChange={(e) => setSteps(Number(e.target.value))}
                 className="w-full accent-violet-500"
@@ -188,7 +204,7 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
 
             <div>
               <label className="block text-sm text-slate-400 mb-1">
-                CFG Scale: {cfgScale}
+                CFG Scale: {cfgLocked ? 'fixed' : cfgScale}
               </label>
               <input
                 type="range"
@@ -196,8 +212,9 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
                 max={20}
                 step={0.5}
                 value={cfgScale}
+                disabled={cfgLocked}
                 onChange={(e) => setCfgScale(Number(e.target.value))}
-                className="w-full accent-violet-500"
+                className="w-full accent-violet-500 disabled:opacity-40"
               />
             </div>
           </div>

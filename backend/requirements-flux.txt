@@ -1,0 +1,2 @@
+# Extra packages for FLUX (Linux + NVIDIA only)
+bitsandbytes

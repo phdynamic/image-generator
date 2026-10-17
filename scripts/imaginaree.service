@@ -1,0 +1,19 @@
+[Unit]
+Description=Imaginaree image generator
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=@APP_DIR@
+ExecStart=@APP_DIR@/backend/venv/bin/python @APP_DIR@/run_app.py
+Environment=PYTHONUNBUFFERED=1
+# Lets PyTorch reuse fragmented VRAM, which matters on an 8 GB card.
+Environment=PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

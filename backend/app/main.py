@@ -4,15 +4,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
+from .auth import AuthMiddleware, assert_safe_config, auth_enabled
 from .config import settings
 from .database import engine, Base
 from .services.model_manager import ModelManager
 from .services.generator import ImageGenerator
-from .routers import generate, gallery, models_router, websocket, upscale, prompts
+from .utils.gpu_utils import cuda_available, get_gpu_name
+from .routers import auth_router, generate, gallery, models_router, websocket, upscale, prompts
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,12 @@ STATIC_DIR = _get_static_dir()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    assert_safe_config()
+    if cuda_available():
+        logger.info("GPU: %s", get_gpu_name())
+    else:
+        logger.warning("No CUDA GPU detected - image generation will be very slow")
+    logger.info("Sign-in %s", "required" if auth_enabled() else "not required (local use)")
     Base.metadata.create_all(bind=engine)
     model_manager = ModelManager()
     generator = ImageGenerator(model_manager)
@@ -52,17 +58,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Imaginaree API", lifespan=lifespan)
+# The interactive API docs would stay publicly readable even behind the password.
+app = FastAPI(title="Imaginaree API", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# No CORS: the UI is served from the same origin as the API, and an open CORS
+# policy combined with cookie logins would let other websites use the app.
+app.add_middleware(AuthMiddleware)
 
 # API routes first — these take priority
+app.include_router(auth_router.router)
 app.include_router(generate.router)
 app.include_router(gallery.router)
 app.include_router(models_router.router)
