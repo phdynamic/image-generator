@@ -31,7 +31,9 @@ The script:
 - asks you to choose a **password** (use a long passphrase)
 - installs and starts a background service that also starts at boot
 
-When it finishes, open <http://127.0.0.1:8000> on that machine and sign in.
+When it finishes, it prints the address to open (normally <http://127.0.0.1:8000>) on
+that machine. If another program already uses port 8000, the script picks the next
+free port and tells you which; use that number wherever this guide says `8000`.
 Generate one image to confirm the GPU works. The header shows your GPU and how
 much VRAM is free. If it says **No GPU (CPU mode)**, generation is running on
 the CPU and will be very slow, so see Troubleshooting.
@@ -52,7 +54,7 @@ guide.
 4. Open the tunnel's **Public Hostname** tab and add a hostname:
    - Subdomain and domain: for example `images` + `yourdomain.com`
    - Service type: **HTTP**
-   - URL: `localhost:8000`
+   - URL: `localhost:8000` (or the port the setup script chose)
 
 Then, on the machine:
 
@@ -126,9 +128,13 @@ skip re-downloading models. To bring your gallery, copy `imaginaree.db` and the
 - **The app won't start.** Run `journalctl --user -u imaginaree -n 50 --no-pager`.
   The most common cause is a missing password: the app refuses to start in public
   mode without one. Run `set_password.py`.
+- **A different page shows up at 127.0.0.1:8000.** Another program is using that
+  port. Find it with `ss -ltnp | grep :8000`. Either re-run
+  `bash scripts/setup_linux.sh` (it picks a free port) or set `APP_PORT=8765` in
+  `.env` and restart. Update the tunnel's service URL to the same port.
 - **The site shows a Cloudflare error.** Check that the app is running
-  (`curl http://127.0.0.1:8000/api/auth/status`) and that the tunnel service is
-  active.
+  (`curl http://127.0.0.1:8000/api/auth/status`, using your port) and that the
+  tunnel service is active.
 - **It stops working when you log out or reboot.** The setup script turns on
   "lingering" so the services run without a login. Check with
   `loginctl show-user $USER | grep Linger` (it should say `Linger=yes`).

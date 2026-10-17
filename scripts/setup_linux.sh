@@ -63,6 +63,28 @@ if ! grep -Eq "^APP_PASSWORD_HASH='.+'" "$APP_DIR/.env"; then
   "$VENV/bin/python" "$APP_DIR/scripts/set_password.py"
 fi
 
+say "Choosing a port"
+# Stop our own service first so it doesn't count as "in use" when re-running this script.
+systemctl --user stop imaginaree.service 2>/dev/null || true
+PORT="$(grep -E '^APP_PORT=' "$APP_DIR/.env" | tail -1 | cut -d= -f2 | tr -d "'\" ")"
+PORT="${PORT:-8000}"
+port_in_use() {
+  python3 -c 'import socket, sys
+s = socket.socket()
+s.settimeout(1)
+sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)' "$1"
+}
+while port_in_use "$PORT"; do
+  warn "Port $PORT is already used by another program."
+  PORT=$((PORT + 1))
+done
+if grep -q '^APP_PORT=' "$APP_DIR/.env"; then
+  sed -i "s/^APP_PORT=.*/APP_PORT=$PORT/" "$APP_DIR/.env"
+else
+  echo "APP_PORT=$PORT" >> "$APP_DIR/.env"
+fi
+echo "Imaginaree will use port $PORT"
+
 say "Installing the background service"
 mkdir -p "$UNIT_DIR"
 sed "s|@APP_DIR@|$APP_DIR|g" "$APP_DIR/scripts/imaginaree.service" > "$UNIT_DIR/imaginaree.service"
@@ -74,9 +96,11 @@ loginctl enable-linger "$USER" || warn "Could not enable lingering; the app will
 
 say "Waiting for the app to start (loading PyTorch takes a moment)"
 for _ in $(seq 1 60); do
-  if curl -fsS http://127.0.0.1:8000/api/auth/status >/dev/null 2>&1; then
-    printf '\nImaginaree is running: http://127.0.0.1:8000\n'
+  # Check for Imaginaree's own reply, not just any web server on the port.
+  if curl -fsS "http://127.0.0.1:$PORT/api/auth/status" 2>/dev/null | grep -q auth_required; then
+    printf '\nImaginaree is running: http://127.0.0.1:%s\n' "$PORT"
     printf 'Next, for access from anywhere: bash scripts/setup_tunnel.sh\n'
+    printf '(In Cloudflare, the tunnel service URL must be http://localhost:%s)\n' "$PORT"
     exit 0
   fi
   sleep 2
