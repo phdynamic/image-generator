@@ -1,13 +1,15 @@
+import gc
 import os
 import threading
 import time
+import traceback
 from typing import Callable
 
 from PIL import Image
 
 from ..config import settings
 from ..utils.image_utils import save_image, create_thumbnail
-from ..utils.gpu_utils import get_device
+from ..utils.gpu_utils import clear_vram, get_device
 from .model_manager import ModelManager
 from .model_registry import get_spec
 
@@ -74,7 +76,15 @@ class ImageGenerator:
                 call["width"] = width
                 call["height"] = height
 
-            result = pipeline(**call)
+            try:
+                result = pipeline(**call)
+            except BaseException as exc:
+                # Give back the memory a failed run was holding so a retry
+                # (or another model) starts with all the free VRAM it can get.
+                traceback.clear_frames(exc.__traceback__)
+                gc.collect()
+                clear_vram()
+                raise
             generation_time = time.time() - start_time
             image = result.images[0]
 

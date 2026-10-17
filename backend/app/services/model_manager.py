@@ -1,6 +1,7 @@
 import gc
 import logging
 import threading
+import traceback
 
 from ..config import settings
 from ..utils.gpu_utils import cuda_available, get_device, get_vram_info, clear_vram
@@ -38,12 +39,18 @@ class ModelManager:
 
             self.unload_model()
 
-            pipeline = self._build_pipeline(spec)
-            self._place(pipeline, spec)
-
-            self.pipeline = pipeline
-            self.img2img_pipeline = self._build_img2img(pipeline)
-            self.current_model_id = model_id
+            try:
+                pipeline = self._build_pipeline(spec)
+                self._place(pipeline, spec)
+                self.pipeline = pipeline
+                self.img2img_pipeline = self._build_img2img(pipeline)
+                self.current_model_id = model_id
+            except BaseException as exc:
+                # A half-loaded model (e.g. after running out of GPU memory) would
+                # otherwise keep its RAM and VRAM until the app restarts.
+                traceback.clear_frames(exc.__traceback__)
+                self.unload_model()
+                raise
 
     def unload_model(self):
         self.pipeline = None
