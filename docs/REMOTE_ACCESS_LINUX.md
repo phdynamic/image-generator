@@ -58,8 +58,9 @@ guide.
    **Public Hostname**; if you still see that name, it's the same thing.) Choose
    **Add route → Published application** and fill in:
    - **Hostname:** a subdomain plus your domain, for example `images` + `yourdomain.com`
-   - **Service URL:** `http://localhost:8000`, or the port the setup script chose
-     (include the `http://`)
+   - **Service URL:** `http://127.0.0.1:8000`, or the port the setup script chose
+     (include the `http://`). Use `127.0.0.1` rather than `localhost`: `localhost` can
+     resolve to IPv6, which the app doesn't listen on.
 
    Saving it creates the DNS record for you.
 
@@ -168,6 +169,14 @@ skip re-downloading models. To bring your gallery, copy `imaginaree.db` and the
   port. Find it with `ss -ltnp | grep :8000`. Either re-run
   `bash scripts/setup_linux.sh` (it picks a free port) or set `APP_PORT=8765` in
   `.env` and restart. Update the tunnel's service URL to the same port.
+- **Cloudflare shows 502 and the tunnel log says "connection refused".** The tunnel
+  is fine; the app isn't answering on its port. Check
+  `systemctl --user status imaginaree` and
+  `journalctl --user -u imaginaree -n 40 --no-pager`, and make sure the route's
+  Service URL uses the app's port and `127.0.0.1`.
+- **Strange requests (wp-admin, /debug, ...) in the tunnel log.** Bots probe every new
+  public site. They can't get past the sign-in, which is why the password (and
+  Cloudflare Access) matter.
 - **The site shows a Cloudflare error.** Check that the app is running
   (`curl http://127.0.0.1:8000/api/auth/status`, using your port) and that the
   tunnel service is active.

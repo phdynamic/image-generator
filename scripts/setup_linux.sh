@@ -102,7 +102,7 @@ for _ in $(seq 1 60); do
   if curl -fsS "http://127.0.0.1:$PORT/api/auth/status" 2>/dev/null | grep -q auth_required; then
     printf '\nImaginaree is running: http://127.0.0.1:%s\n' "$PORT"
     printf 'Next, for access from anywhere: bash scripts/setup_tunnel.sh\n'
-    printf "(In Cloudflare, the tunnel route's Service URL must be http://localhost:%s)\n" "$PORT"
+    printf "(In Cloudflare, the tunnel route's Service URL must be http://127.0.0.1:%s)\n" "$PORT"
     exit 0
   fi
   sleep 2
