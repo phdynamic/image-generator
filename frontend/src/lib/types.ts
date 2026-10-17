@@ -51,6 +51,14 @@ export interface ModelInfo {
   supports_negative: boolean
   experimental: boolean
   download_gb: number | null
+  download: DownloadState | null
+}
+
+export interface DownloadState {
+  status: 'downloading' | 'error'
+  downloaded_bytes: number
+  total_bytes: number | null
+  error: string | null
 }
 
 export interface GpuStatus {

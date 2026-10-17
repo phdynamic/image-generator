@@ -151,6 +151,24 @@ export async function getModels(): Promise<ModelInfo[]> {
   return handleResponse<ModelInfo[]>(response)
 }
 
+export async function startModelDownload(modelId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE}/models/download`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model_id: modelId }),
+  })
+  await handleResponse<unknown>(response)
+}
+
+export async function deleteModel(modelId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE}/models/delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model_id: modelId }),
+  })
+  await handleResponse<unknown>(response)
+}
+
 export async function getGpuStatus(): Promise<GpuStatus> {
   const response = await apiFetch(`${API_BASE}/gpu-status`)
   return handleResponse<GpuStatus>(response)

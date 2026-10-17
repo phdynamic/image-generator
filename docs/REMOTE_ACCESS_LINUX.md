@@ -90,7 +90,12 @@ Changing the password signs everyone out.
 
 ## Models
 
-Pick a model from the dropdown. The first use of each one downloads it.
+Pick a model from the dropdown. Models that aren't on the computer yet show a
+**Download** button with a progress bar. Downloads run in the background, so you
+can keep generating with other models, but only one model downloads at a time.
+A downloaded model has a **Delete** link to free disk space. If a download is
+interrupted, press Download again and it resumes where it stopped. (Generating
+with a model you haven't downloaded also works; it just downloads first.)
 
 | Model | Download | Notes |
 |---|---|---|

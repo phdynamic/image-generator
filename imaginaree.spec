@@ -78,6 +78,8 @@ a = Analysis(
         'app.passwords',
         'app.services.model_registry',
         'app.services.jobs',
+        'app.services.model_cache',
+        'app.services.downloads',
         'app.services',
         'app.services.model_manager',
         'app.services.generator',

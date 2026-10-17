@@ -1,22 +1,21 @@
-import os
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
-from fastapi import APIRouter, Request
-
-from ..config import settings
+from ..services import model_cache
+from ..services.downloads import DownloadBusy, download_manager
 from ..services.model_manager import ModelManager
+from ..services.model_registry import get_spec
 from ..utils.gpu_utils import get_device, get_gpu_name, get_vram_info
 
 
 router = APIRouter(prefix="/api")
 
+# Leave some room for the unpacked files and the model's own temp data.
+DISK_SPACE_MARGIN = 1.1
 
-def _is_model_cached(model_id: str) -> bool:
-    """Check if a model's files exist in the local cache."""
-    try:
-        cache_path = os.path.join(settings.MODELS_CACHE_DIR, "models--" + model_id.replace("/", "--"))
-        return os.path.isdir(cache_path)
-    except Exception:
-        return False
+
+class ModelRequest(BaseModel):
+    model_id: str
 
 
 def _get_current_model_id(request: Request) -> str | None:
@@ -26,6 +25,13 @@ def _get_current_model_id(request: Request) -> str | None:
         return None
 
 
+def _require_spec(model_id: str):
+    spec = get_spec(model_id)
+    if spec is None:
+        raise HTTPException(status_code=400, detail=f"Unknown model: {model_id}")
+    return spec
+
+
 @router.get("/models")
 def list_models(request: Request):
     models = ModelManager.get_available_models()
@@ -33,9 +39,60 @@ def list_models(request: Request):
 
     for model in models:
         model["is_loaded"] = model["id"] == current_model
-        model["is_cached"] = _is_model_cached(model["id"])
+        model["is_cached"] = model_cache.is_cached(model["id"])
+        model["download"] = download_manager.state(model["id"])
 
     return models
+
+
+@router.post("/models/download", status_code=202)
+def start_download(req: ModelRequest, request: Request):
+    spec = _require_spec(req.model_id)
+
+    if model_cache.is_cached(spec.id):
+        raise HTTPException(status_code=409, detail=f"{spec.name} is already downloaded.")
+
+    if spec.download_gb:
+        needed = spec.download_gb * model_cache.GIB
+        already = model_cache.cache_size(spec.id)
+        if model_cache.free_disk_bytes() < (needed - already) * DISK_SPACE_MARGIN:
+            raise HTTPException(
+                status_code=507,
+                detail=f"Not enough disk space for {spec.name} (needs about {spec.download_gb:g} GB).",
+            )
+
+    download_manager.clear(spec.id)  # forget an earlier failure
+    model_manager = request.app.state.model_manager
+    try:
+        download_manager.start(spec, model_manager.download_model)
+    except DownloadBusy as busy:
+        other = get_spec(busy.active_model_id)
+        raise HTTPException(
+            status_code=409,
+            detail=f"Another download is in progress ({other.name if other else busy.active_model_id}).",
+        )
+    return {"status": "downloading"}
+
+
+@router.post("/models/delete")
+def delete_model(req: ModelRequest, request: Request):
+    spec = _require_spec(req.model_id)
+
+    if download_manager.active() == spec.id:
+        raise HTTPException(status_code=409, detail="That model is still downloading.")
+
+    generator = request.app.state.generator
+    # Don't pull files out from under an image that's being generated.
+    if not generator.lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="An image is being generated. Try again in a moment.")
+    try:
+        manager = request.app.state.model_manager
+        if manager.current_model_id == spec.id:
+            manager.unload_model()
+        model_cache.delete(spec.id)
+    finally:
+        generator.lock.release()
+    return {"deleted": spec.id}
 
 
 @router.get("/gpu-status")

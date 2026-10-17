@@ -62,6 +62,25 @@ class ModelManager:
             raise RuntimeError("Image-to-image isn't available for this model.")
         return self.img2img_pipeline
 
+    # -- downloading --------------------------------------------------------
+
+    def download_model(self, spec: ModelSpec) -> None:
+        """Fetch a model's files into the cache without loading it.
+
+        Mirrors what load_model() asks for, so the same files are reused.
+        """
+        from diffusers import DiffusionPipeline
+
+        common = {"cache_dir": settings.MODELS_CACHE_DIR, "token": settings.HF_TOKEN or None}
+        if spec.variant and cuda_available():
+            try:
+                DiffusionPipeline.download(spec.id, variant=spec.variant, use_safetensors=True, **common)
+                return
+            except (ValueError, OSError) as exc:
+                logger.warning("%s has no '%s' weights (%s); downloading the default files",
+                               spec.id, spec.variant, exc)
+        DiffusionPipeline.download(spec.id, **common)
+
     # -- loading ------------------------------------------------------------
 
     def _build_pipeline(self, spec: ModelSpec):

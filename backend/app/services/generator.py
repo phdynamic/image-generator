@@ -16,7 +16,7 @@ class ImageGenerator:
     def __init__(self, model_manager: ModelManager):
         self.model_manager = model_manager
         # One GPU: generate one image at a time, whoever asks.
-        self._lock = threading.Lock()
+        self.lock = threading.Lock()
 
     def generate(
         self,
@@ -46,7 +46,7 @@ class ImageGenerator:
                 progress_callback(step_index + 1, steps)
             return callback_kwargs
 
-        with self._lock:
+        with self.lock:
             self.model_manager.load_model(model_id)
             generator = torch.Generator(device=get_device()).manual_seed(seed)
 
