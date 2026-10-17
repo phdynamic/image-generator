@@ -8,6 +8,7 @@ from app.services import model_cache
 from app.services.downloads import download_manager, friendly_error
 
 MODEL = "RunDiffusion/Juggernaut-XL-v9"   # has a known download size
+BIG = "test-org/gated-big-model"          # stand-in: gated, and needs a 12 GB GPU
 OTHER = "SG161222/RealVisXL_V5.0"
 MB = 1024 * 1024
 
@@ -16,12 +17,12 @@ MB = 1024 * 1024
 def clean_state():
     download_manager._states.clear()
     download_manager._active = None
-    for m in (MODEL, OTHER, "black-forest-labs/FLUX.1-schnell"):
+    for m in (MODEL, OTHER, BIG):
         model_cache.delete(m)
     yield
     download_manager._states.clear()
     download_manager._active = None
-    for m in (MODEL, OTHER, "black-forest-labs/FLUX.1-schnell"):
+    for m in (MODEL, OTHER, BIG):
         model_cache.delete(m)
 
 
@@ -189,7 +190,26 @@ def test_download_endpoints_need_sign_in(locked_client):
     assert locked_client.post("/api/models/delete", json={"model_id": MODEL}).status_code == 401
 
 
-# -- GPU size / gated models (FLUX) ----------------------------------------------
+# -- GPU size / gated models ------------------------------------------------------
+# No built-in model is gated or needs a big GPU any more, so these checks use a
+# stand-in registered just for the test.
+
+from app.services import model_manager as manager_module  # noqa: E402
+from app.services import model_registry as registry  # noqa: E402
+
+
+@pytest.fixture
+def big_gated_model(monkeypatch):
+    spec = registry.ModelSpec(
+        id=BIG, name="Big Gated Model", family="sdxl", vram_gb=10,
+        description="test", gated=True, min_vram_gb=12, download_gb=1,
+    )
+    monkeypatch.setattr(registry, "MODELS", registry.MODELS + [spec])
+    monkeypatch.setattr(manager_module, "MODELS", registry.MODELS)
+    monkeypatch.setattr(registry, "_BY_ID", {**registry._BY_ID, BIG: spec})
+    return spec
+
+
 
 GIB_BYTES = 1024 ** 3
 
@@ -201,29 +221,28 @@ def fake_gpu(monkeypatch, total_gib):
 
 
 
-FLUX = "black-forest-labs/FLUX.1-schnell"
 
 
-def test_gated_model_without_token_fails_fast(open_client, monkeypatch):
+def test_gated_model_without_token_fails_fast(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, 24)
     monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: False)
-    m = info(open_client, FLUX)
+    m = info(open_client, BIG)
     assert m["gated"] is True and m["needs_token"] is True
-    r = open_client.post("/api/models/download", json={"model_id": FLUX})
+    r = open_client.post("/api/models/download", json={"model_id": BIG})
     assert r.status_code == 400
-    assert "HF_TOKEN" in r.json()["detail"] and "huggingface.co/black-forest-labs/FLUX.1-schnell" in r.json()["detail"]
+    assert "HF_TOKEN" in r.json()["detail"] and "huggingface.co/test-org/gated-big-model" in r.json()["detail"]
     assert download_manager.active() is None, "nothing should have started"
 
 
-def test_gated_model_with_token_can_download(open_client, monkeypatch):
+def test_gated_model_with_token_can_download(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, 24)
     monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: True)
     monkeypatch.setattr(model_cache, "free_disk_bytes", lambda: 10 ** 13)
     monkeypatch.setattr(app.state.model_manager, "download_model", lambda spec: write_finished(spec.id))
-    assert info(open_client, FLUX)["needs_token"] is False
-    assert open_client.post("/api/models/download", json={"model_id": FLUX}).status_code == 202
-    wait_until(lambda: info(open_client, FLUX)["is_cached"])
-    model_cache.delete(FLUX)
+    assert info(open_client, BIG)["needs_token"] is False
+    assert open_client.post("/api/models/download", json={"model_id": BIG}).status_code == 202
+    wait_until(lambda: info(open_client, BIG)["is_cached"])
+    model_cache.delete(BIG)
 
 
 def test_ungated_models_never_need_a_token(open_client, monkeypatch):
@@ -233,44 +252,44 @@ def test_ungated_models_never_need_a_token(open_client, monkeypatch):
 
 # -- models that don't fit this GPU ---------------------------------------------
 
-def test_flux_is_unavailable_on_an_8gb_card(open_client, monkeypatch):
+def test_big_model_is_unavailable_on_an_8gb_card(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, 7.68)   # the RTX 3070 from the real error report
-    flux = info(open_client, FLUX)
-    assert flux["fits_gpu"] is False
-    assert "12 GB" in flux["gpu_problem"] and "7.7 GB" in flux["gpu_problem"]
+    big = info(open_client, BIG)
+    assert big["fits_gpu"] is False
+    assert "12 GB" in big["gpu_problem"] and "7.7 GB" in big["gpu_problem"]
     assert info(open_client, MODEL)["fits_gpu"] is True      # SDXL models are unaffected
     assert info(open_client, "Lykon/dreamshaper-8")["gpu_problem"] is None
 
 
-def test_flux_is_available_on_a_big_card(open_client, monkeypatch):
+def test_big_model_is_available_on_a_big_card(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, 24)
-    assert info(open_client, FLUX)["fits_gpu"] is True
+    assert info(open_client, BIG)["fits_gpu"] is True
     fake_gpu(monkeypatch, 11.6)   # a "12 GB" card reports slightly less
-    assert info(open_client, FLUX)["fits_gpu"] is True
+    assert info(open_client, BIG)["fits_gpu"] is True
 
 
-def test_flux_needs_a_gpu_at_all(open_client, monkeypatch):
+def test_big_model_needs_a_gpu_at_all(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, None)
-    flux = info(open_client, FLUX)
-    assert flux["fits_gpu"] is False and "NVIDIA GPU" in flux["gpu_problem"]
+    big = info(open_client, BIG)
+    assert big["fits_gpu"] is False and "NVIDIA GPU" in big["gpu_problem"]
 
 
-def test_download_refused_when_model_cannot_run(open_client, monkeypatch):
+def test_download_refused_when_model_cannot_run(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, 7.68)
     monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: True)
-    r = open_client.post("/api/models/download", json={"model_id": FLUX})
+    r = open_client.post("/api/models/download", json={"model_id": BIG})
     assert r.status_code == 400 and "12 GB" in r.json()["detail"]
     assert download_manager.active() is None
 
 
-def test_generation_refused_when_model_cannot_run(open_client, monkeypatch):
+def test_generation_refused_when_model_cannot_run(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, 7.68)
-    r = open_client.post("/api/generate", data={"prompt": "x", "model_id": FLUX})
+    r = open_client.post("/api/generate", data={"prompt": "x", "model_id": BIG})
     assert r.status_code == 400 and "12 GB" in r.json()["detail"]
 
 
-def test_can_still_delete_a_model_that_cannot_run(open_client, monkeypatch):
+def test_can_still_delete_a_model_that_cannot_run(open_client, monkeypatch, big_gated_model):
     fake_gpu(monkeypatch, 7.68)
-    write_finished(FLUX)
-    assert open_client.post("/api/models/delete", json={"model_id": FLUX}).status_code == 200
-    assert not model_cache.repo_dir(FLUX).exists()
+    write_finished(BIG)
+    assert open_client.post("/api/models/delete", json={"model_id": BIG}).status_code == 200
+    assert not model_cache.repo_dir(BIG).exists()

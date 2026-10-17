@@ -59,9 +59,7 @@ class ImageGenerator:
                 "generator": generator,
                 "callback_on_step_end": step_callback,
             }
-            if spec.family == "flux":
-                call["max_sequence_length"] = 256
-            elif spec.supports_negative and negative_prompt:
+            if spec.supports_negative and negative_prompt:
                 call["negative_prompt"] = negative_prompt
 
             start_time = time.time()

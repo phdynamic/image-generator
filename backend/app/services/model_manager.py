@@ -93,9 +93,6 @@ class ModelManager:
     def _build_pipeline(self, spec: ModelSpec):
         token = settings.HF_TOKEN or None
 
-        if spec.family == "flux":
-            return self._build_flux(spec, token)
-
         import torch
         from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
 
@@ -126,49 +123,6 @@ class ModelManager:
                 )
         return pipe_cls.from_pretrained(spec.id, **kwargs)
 
-    def _build_flux(self, spec: ModelSpec, token):
-        """FLUX.1 with the transformer and T5 encoder quantized to 4-bit so it
-        can fit on an 8 GB card (with CPU offload)."""
-        try:
-            import bitsandbytes  # noqa: F401
-        except Exception as exc:
-            raise RuntimeError(
-                "FLUX needs the 'bitsandbytes' package (Linux + NVIDIA GPU). "
-                "Install it with: pip install -r backend/requirements-flux.txt"
-            ) from exc
-        if not cuda_available():
-            raise RuntimeError("FLUX needs an NVIDIA GPU.")
-
-        import torch
-        from diffusers import BitsAndBytesConfig as DiffusersBnb
-        from diffusers import FluxPipeline, FluxTransformer2DModel
-        from transformers import BitsAndBytesConfig as TransformersBnb
-        from transformers import T5EncoderModel
-
-        common = {"cache_dir": settings.MODELS_CACHE_DIR, "token": token}
-
-        def nf4(config_cls):
-            return config_cls(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
-            )
-
-        transformer = FluxTransformer2DModel.from_pretrained(
-            spec.id, subfolder="transformer",
-            quantization_config=nf4(DiffusersBnb),
-            torch_dtype=torch.bfloat16, **common,
-        )
-        text_encoder_2 = T5EncoderModel.from_pretrained(
-            spec.id, subfolder="text_encoder_2",
-            quantization_config=nf4(TransformersBnb),
-            torch_dtype=torch.bfloat16, **common,
-        )
-        return FluxPipeline.from_pretrained(
-            spec.id, transformer=transformer, text_encoder_2=text_encoder_2,
-            torch_dtype=torch.bfloat16, **common,
-        )
-
     def _place(self, pipeline, spec: ModelSpec):
         if get_device() != "cuda":
             pipeline.to("cpu")
@@ -177,10 +131,8 @@ class ModelManager:
         mode = settings.OFFLOAD.lower()
         vram = get_vram_info()
         free_gb = vram["free"] / GIB if vram else 0.0
-        offload = (
-            spec.family == "flux"
-            or mode == "always"
-            or (mode != "never" and free_gb < spec.vram_gb + VRAM_HEADROOM_GB)
+        offload = mode == "always" or (
+            mode != "never" and free_gb < spec.vram_gb + VRAM_HEADROOM_GB
         )
         logger.info(
             "Loading %s: %.1f GB VRAM free, needs ~%g GB -> %s",

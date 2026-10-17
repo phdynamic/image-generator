@@ -6,7 +6,7 @@ so a client can never make the server download an arbitrary repository.
 from dataclasses import dataclass, asdict
 from typing import Literal
 
-Family = Literal["sd15", "sdxl", "flux"]
+Family = Literal["sd15", "sdxl"]
 
 
 @dataclass(frozen=True)
@@ -95,26 +95,6 @@ MODELS: list[ModelSpec] = [
         max_steps=8,
         fixed_cfg=0.0,
         supports_negative=False,
-    ),
-    ModelSpec(
-        id="black-forest-labs/FLUX.1-schnell",
-        name="FLUX.1 schnell (experimental)",
-        family="flux",
-        vram_gb=7,
-        description=(
-            "Best prompt following and readable text in images. Needs a GPU with "
-            "about 12 GB of memory."
-        ),
-        default_steps=4,
-        default_cfg=0.0,
-        default_size=1024,
-        max_steps=8,
-        fixed_cfg=0.0,
-        supports_negative=False,
-        experimental=True,
-        gated=True,
-        download_gb=34,
-        min_vram_gb=12,
     ),
 ]
 

@@ -71,11 +71,11 @@ def test_sizes_are_snapped_and_model_checked(fake_generate):
 
 def test_runtime_errors_reach_the_user(open_client, monkeypatch):
     def boom(progress_callback=None, **params):
-        raise RuntimeError("FLUX needs bitsandbytes")
+        raise RuntimeError("a required package is missing")
     monkeypatch.setattr(app.state.generator, "generate", boom)
     job = wait_for(open_client, open_client.post("/api/generate", data={"prompt": "x"}).json()["job_id"])
     assert job["status"] == "error"
-    assert "bitsandbytes" in job["error"]
+    assert "required package" in job["error"]
 
 
 def test_out_of_memory_gets_a_helpful_message(open_client, monkeypatch):

@@ -112,11 +112,10 @@ with a model you haven't downloaded also works; it just downloads first.)
 | RealVisXL V5.0 | ~7 GB | Natural, realistic SDXL |
 | Segmind SSD-1B | ~5 GB | Lighter SDXL |
 | SDXL Turbo | ~6 GB | Drafts in 1-4 steps |
-| FLUX.1 schnell | ~34 GB | **Experimental, needs a GPU with about 12 GB.** Best prompt following and text in images. Needs a free HuggingFace token (below). On smaller cards it's greyed out: an 8 GB card ran out of memory loading it |
 
-Choosing a model sets its recommended steps, guidance and image size. Turbo and
-FLUX ignore the guidance slider and negative prompts, so those controls are
-locked for them.
+Choosing a model sets its recommended steps, guidance and image size. SDXL Turbo
+ignores the guidance slider and negative prompts, so those controls are locked
+for it.
 
 **Your 8 GB card is shared with the desktop.** Plasma, Steam and your browser
 take roughly 2 GB, so about 6 GB is free for generation. Imaginaree checks the
@@ -124,35 +123,10 @@ free VRAM when it loads a model and moves parts of the model to system RAM when
 needed, which makes SDXL models slower but lets them fit. If you see "ran out of
 memory", use a smaller image size, close other GPU programs, or pick a lighter model.
 
-FLUX can't be made to fit in that space (its smallest 4-bit form needs a single
-5.5 GB block of GPU memory), so Imaginaree turns it off on GPUs under about 12 GB
-instead of letting you download 34 GB first. If you already downloaded it, select
-it and use **Delete** to free the disk space.
-
-### Models that need a HuggingFace token (FLUX, on a bigger GPU)
-
-FLUX.1 schnell is free, but HuggingFace only gives its files to signed-in accounts
-that have agreed to share their contact details. The other models don't need this.
-One-time setup:
-
-1. Make a free account at <https://huggingface.co/join> and sign in.
-2. Open <https://huggingface.co/black-forest-labs/FLUX.1-schnell> and accept the
-   terms shown there.
-3. Create a token at <https://huggingface.co/settings/tokens> with **Read** access
-   (use the same account as step 2).
-4. Add it to the app's settings and restart:
-
-   ```bash
-   cd ~/imaginaree
-   echo "HF_TOKEN=hf_your_token_here" >> .env
-   systemctl --user restart imaginaree
-   ```
-
-   (If `.env` already has an `HF_TOKEN=` line, edit that line instead of adding a second.)
-
-Until a token is set, the model shows a notice and the Download button explains
-what's missing. If it still says HuggingFace refused access, the token usually
-belongs to a different account than the one that accepted the terms.
+None of the built-in models need a HuggingFace account. If you add a model that
+does (a "gated" one), the app says so, and you create a free Read token at
+<https://huggingface.co/settings/tokens>, accept that model's terms on its page, and
+put `HF_TOKEN=...` in `~/imaginaree/.env` before restarting.
 
 **Moving things over from another machine:** copy the `models_cache` folder to
 skip re-downloading models. To bring your gallery, copy `imaginaree.db` and the
@@ -187,8 +161,6 @@ skip re-downloading models. To bring your gallery, copy `imaginaree.db` and the
 - **It stops working when you log out or reboot.** The setup script turns on
   "lingering" so the services run without a login. Check with
   `loginctl show-user $USER | grep Linger` (it should say `Linger=yes`).
-- **FLUX fails with a bitsandbytes error.** Run
-  `~/imaginaree/backend/venv/bin/pip install -r ~/imaginaree/backend/requirements-flux.txt`.
 
 ## Good to know
 

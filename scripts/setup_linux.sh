@@ -38,8 +38,6 @@ if [ -n "${TORCH_INDEX_URL:-}" ]; then
   "$VENV/bin/pip" install torch --index-url "$TORCH_INDEX_URL"
 fi
 "$VENV/bin/pip" install -r "$APP_DIR/backend/requirements.txt"
-"$VENV/bin/pip" install -r "$APP_DIR/backend/requirements-flux.txt" \
-  || warn "Could not install bitsandbytes. Everything works except the FLUX model."
 
 say "Checking that PyTorch can see the GPU"
 if ! "$VENV/bin/python" - <<'PY'

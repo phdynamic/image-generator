@@ -14,7 +14,7 @@
 | **Backend** | Python 3.11 + FastAPI | Best ML/AI ecosystem, async support, WebSocket for live progress |
 | **Task Queue** | Celery + Redis (or simple asyncio queue for v1) | Background job processing for generation tasks |
 | **Database** | SQLite via SQLAlchemy | Zero config, perfect for personal tool, easy to back up |
-| **Image Generation** | HuggingFace `diffusers` library | Unified API across all Stable Diffusion variants, FLUX, etc. |
+| **Image Generation** | HuggingFace `diffusers` library | Unified API across all Stable Diffusion variants |
 | **Upscaling** | Real-ESRGAN | Best open-source upscaler, lightweight |
 | **Cloud APIs** | HuggingFace Inference API (free tier) | Free fallback when local GPU is busy or for larger models |
 | **WebSocket** | FastAPI WebSocket | Real-time generation progress (step previews, progress bars) |
@@ -27,7 +27,6 @@
 |-------|------|------|-------|---------|----------|
 | **Stable Diffusion 1.5** | text2img, img2img | ~4 GB | Fast | Good | Quick drafts, icons, patterns |
 | **SDXL 1.0** | text2img, img2img | ~7 GB (fp16) | Medium | Great | High-quality illustrations, scenes |
-| **FLUX.1-schnell** | text2img | ~8 GB (quantized) | Fast | Excellent | Best quality for complex prompts |
 | **Real-ESRGAN x4** | upscale | ~1 GB | Fast | N/A | 4x upscaling any output |
 | **ControlNet** (future) | guided generation | +2 GB | Slower | Great | Pose/edge-guided generation |
 
@@ -145,7 +144,7 @@ imaginaree/
 **Goal:** Switch between models, browse and manage your image history.
 
 ### Backend
-- [ ] Expand `ModelManager` to support SDXL and FLUX.1-schnell
+- [ ] Expand `ModelManager` to support SDXL
 - [ ] VRAM-aware model swapping (unload current model before loading new one)
 - [ ] `GET /api/models` — list available models with status (downloaded, loaded, available)
 - [ ] `POST /api/models/:id/download` — trigger model download with progress
@@ -268,7 +267,7 @@ WS /ws/progress    # Real-time generation progress (step count, preview images)
 - Node.js 18+
 - NVIDIA GPU with 8GB+ VRAM
 - NVIDIA drivers + CUDA toolkit installed
-- ~15 GB disk space for models (SD 1.5 ~4GB, SDXL ~7GB, FLUX ~8GB)
+- ~15 GB disk space for models (SD 1.5 ~4GB, SDXL ~7GB)
 
 ### Python Dependencies (key ones)
 ```
