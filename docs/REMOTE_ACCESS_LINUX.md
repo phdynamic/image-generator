@@ -78,10 +78,26 @@ Paste the token when asked (it isn't shown as you type). Open
 Imaginaree's password is the only thing between the internet and your GPU. Cloudflare Access
 adds a second gate that rejects strangers before they even see the sign-in page.
 
-In **Zero Trust → Access → Applications → Add an application → Self-hosted**:
-use your hostname, add a policy that **allows only your email address**, and
-choose **One-time PIN** as the login method. You'll get a code by email when you
-visit the site from a new browser.
+Cloudflare's menus change often, so use these names as a guide. Setting it up has
+three separate parts:
+
+1. **Make sure One-time PIN is switched on.** The login method is *not* part of the
+   policy. It's a setting for your whole Cloudflare account, under **Zero Trust →
+   Integrations → Identity providers** (older dashboards: **Settings →
+   Authentication → Login methods**). If **One-time PIN** isn't in the list, use
+   **Add new** and choose it. It needs no extra settings. It's often already there.
+2. **Create the application.** In **Zero Trust → Access controls → Applications**
+   (older: **Access → Applications**), choose **Add an application → Self-hosted**.
+   Give it any name and set the **hostname** to your domain, for example
+   `imaginaree.art`.
+3. **Add a policy to it.** Set the action to **Allow** and add one rule:
+   **Include → Emails → your email address**. The policy has no login-method
+   choice; that comes from step 1. Anyone not on the list is turned away.
+
+When you open the site from a new browser, Cloudflare asks for your email and sends
+a 6-digit code that works for 10 minutes. After that, Imaginaree's own password
+page appears. If the application shows a **Login methods** section, leaving it on
+"accept all available identity providers" is fine.
 
 ## Everyday use
 
