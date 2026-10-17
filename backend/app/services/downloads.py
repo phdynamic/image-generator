@@ -9,6 +9,7 @@ import threading
 from typing import Callable
 
 from . import model_cache
+from .hf_auth import gated_message, hf_token_available
 from .model_registry import ModelSpec
 
 logger = logging.getLogger(__name__)
@@ -20,14 +21,13 @@ class DownloadBusy(Exception):
         self.active_model_id = active_model_id
 
 
-def friendly_error(exc: Exception) -> str:
+def friendly_error(exc: Exception, model_id: str = "") -> str:
     name = exc.__class__.__name__
     text = str(exc)
     if isinstance(exc, OSError) and exc.errno == errno.ENOSPC:
         return "The disk is full. Free some space (or delete a model you don't use) and try again."
     if name in ("GatedRepoError", "RepositoryNotFoundError") or "401" in text or "gated" in text.lower():
-        return ("This model needs a HuggingFace account. Accept its license on huggingface.co, "
-                "then put HF_TOKEN=... in the .env file and restart.")
+        return gated_message(model_id, hf_token_available())
     return text[:300] or name
 
 
@@ -69,7 +69,7 @@ class DownloadManager:
             fetch(spec)
         except Exception as exc:  # noqa: BLE001 - shown to the user
             logger.exception("Download of %s failed", spec.id)
-            error = friendly_error(exc)
+            error = friendly_error(exc, spec.id)
         with self._lock:
             if error:
                 self._states[spec.id].update(status="error", error=error)

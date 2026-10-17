@@ -101,7 +101,7 @@ MODELS: list[ModelSpec] = [
         vram_gb=7,
         description=(
             "Best prompt following and readable text in images. Heavy on an 8 GB "
-            "card: close other GPU apps first. Big first download."
+            "card: close other GPU apps first."
         ),
         default_steps=4,
         default_cfg=0.0,
@@ -110,6 +110,7 @@ MODELS: list[ModelSpec] = [
         fixed_cfg=0.0,
         supports_negative=False,
         experimental=True,
+        gated=True,
         download_gb=34,
     ),
 ]

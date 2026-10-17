@@ -80,6 +80,13 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
         <div className="mt-1.5 space-y-2 text-xs text-slate-500">
           <p>{selected.description}</p>
 
+          {selected.needs_token && !selected.is_cached && (
+            <p className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg p-2">
+              Needs a free HuggingFace token. Accept the terms at huggingface.co/{selected.id}, create a
+              Read token, and add <code>HF_TOKEN=...</code> to the .env file. See the setup guide.
+            </p>
+          )}
+
           {selected.download?.status === 'downloading' ? (
             <DownloadProgress model={selected} />
           ) : selected.is_cached ? (

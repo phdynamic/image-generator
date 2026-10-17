@@ -104,7 +104,7 @@ with a model you haven't downloaded also works; it just downloads first.)
 | RealVisXL V5.0 | ~7 GB | Natural, realistic SDXL |
 | Segmind SSD-1B | ~5 GB | Lighter SDXL |
 | SDXL Turbo | ~6 GB | Drafts in 1-4 steps |
-| FLUX.1 schnell | ~34 GB | **Experimental.** Best prompt following and text in images |
+| FLUX.1 schnell | ~34 GB | **Experimental.** Best prompt following and text in images. **Needs a free HuggingFace token** (below) |
 
 Choosing a model sets its recommended steps, guidance and image size. Turbo and
 FLUX ignore the guidance slider and negative prompts, so those controls are
@@ -117,9 +117,30 @@ needed, which makes SDXL models slower but lets them fit. For FLUX, close Steam
 and other GPU programs first. If you see "ran out of memory", use a smaller image
 size or a lighter model.
 
-**Models that need a HuggingFace token:** none of the current ones do. If you
-add a gated model later, create a free token at huggingface.co/settings/tokens and
-put `HF_TOKEN=...` in `~/imaginaree/.env`.
+### Models that need a HuggingFace token (FLUX)
+
+FLUX.1 schnell is free, but HuggingFace only gives its files to signed-in accounts
+that have agreed to share their contact details. The other models don't need this.
+One-time setup:
+
+1. Make a free account at <https://huggingface.co/join> and sign in.
+2. Open <https://huggingface.co/black-forest-labs/FLUX.1-schnell> and accept the
+   terms shown there.
+3. Create a token at <https://huggingface.co/settings/tokens> with **Read** access
+   (use the same account as step 2).
+4. Add it to the app's settings and restart:
+
+   ```bash
+   cd ~/imaginaree
+   echo "HF_TOKEN=hf_your_token_here" >> .env
+   systemctl --user restart imaginaree
+   ```
+
+   (If `.env` already has an `HF_TOKEN=` line, edit that line instead of adding a second.)
+
+Until a token is set, the model shows a notice and the Download button explains
+what's missing. If it still says HuggingFace refused access, the token usually
+belongs to a different account than the one that accepted the terms.
 
 **Moving things over from another machine:** copy the `models_cache` folder to
 skip re-downloading models. To bring your gallery, copy `imaginaree.db` and the

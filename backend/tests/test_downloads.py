@@ -136,10 +136,15 @@ def test_refuses_when_disk_is_too_small(open_client, monkeypatch):
     assert r.status_code == 507 and "disk space" in r.json()["detail"]
 
 
-def test_friendly_errors():
+def test_friendly_errors(monkeypatch):
     class GatedRepoError(Exception):
         pass
-    assert "HF_TOKEN" in friendly_error(GatedRepoError("401 Client Error"))
+    monkeypatch.setattr("app.services.downloads.hf_token_available", lambda: False)
+    no_token = friendly_error(GatedRepoError("401 Client Error"), "org/model")
+    assert "HF_TOKEN" in no_token and "huggingface.co/org/model" in no_token
+    monkeypatch.setattr("app.services.downloads.hf_token_available", lambda: True)
+    with_token = friendly_error(GatedRepoError("401 Client Error"), "org/model")
+    assert "same account" in with_token and "HF_TOKEN" not in with_token
     assert "disk is full" in friendly_error(OSError(28, "No space left on device"))
     assert friendly_error(RuntimeError("plain")) == "plain"
 
@@ -182,3 +187,33 @@ def test_delete_unloads_a_loaded_model(open_client):
 def test_download_endpoints_need_sign_in(locked_client):
     assert locked_client.post("/api/models/download", json={"model_id": MODEL}).status_code == 401
     assert locked_client.post("/api/models/delete", json={"model_id": MODEL}).status_code == 401
+
+
+# -- gated models (FLUX) --------------------------------------------------------
+
+FLUX = "black-forest-labs/FLUX.1-schnell"
+
+
+def test_gated_model_without_token_fails_fast(open_client, monkeypatch):
+    monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: False)
+    m = info(open_client, FLUX)
+    assert m["gated"] is True and m["needs_token"] is True
+    r = open_client.post("/api/models/download", json={"model_id": FLUX})
+    assert r.status_code == 400
+    assert "HF_TOKEN" in r.json()["detail"] and "huggingface.co/black-forest-labs/FLUX.1-schnell" in r.json()["detail"]
+    assert download_manager.active() is None, "nothing should have started"
+
+
+def test_gated_model_with_token_can_download(open_client, monkeypatch):
+    monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: True)
+    monkeypatch.setattr(model_cache, "free_disk_bytes", lambda: 10 ** 13)
+    monkeypatch.setattr(app.state.model_manager, "download_model", lambda spec: write_finished(spec.id))
+    assert info(open_client, FLUX)["needs_token"] is False
+    assert open_client.post("/api/models/download", json={"model_id": FLUX}).status_code == 202
+    wait_until(lambda: info(open_client, FLUX)["is_cached"])
+    model_cache.delete(FLUX)
+
+
+def test_ungated_models_never_need_a_token(open_client, monkeypatch):
+    monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: False)
+    assert info(open_client, MODEL)["needs_token"] is False

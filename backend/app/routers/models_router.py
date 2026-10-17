@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from ..services import model_cache
 from ..services.downloads import DownloadBusy, download_manager
+from ..services.hf_auth import gated_message, hf_token_available
 from ..services.model_manager import ModelManager
 from ..services.model_registry import get_spec
 from ..utils.gpu_utils import get_device, get_gpu_name, get_vram_info
@@ -36,8 +37,10 @@ def _require_spec(model_id: str):
 def list_models(request: Request):
     models = ModelManager.get_available_models()
     current_model = _get_current_model_id(request)
+    token_available = hf_token_available()
 
     for model in models:
+        model["needs_token"] = bool(model["gated"]) and not token_available
         model["is_loaded"] = model["id"] == current_model
         model["is_cached"] = model_cache.is_cached(model["id"])
         model["download"] = download_manager.state(model["id"])
@@ -51,6 +54,9 @@ def start_download(req: ModelRequest, request: Request):
 
     if model_cache.is_cached(spec.id):
         raise HTTPException(status_code=409, detail=f"{spec.name} is already downloaded.")
+
+    if spec.gated and not hf_token_available():
+        raise HTTPException(status_code=400, detail=gated_message(spec.id, token_set=False))
 
     if spec.download_gb:
         needed = spec.download_gb * model_cache.GIB

@@ -79,6 +79,7 @@ a = Analysis(
         'app.services.model_registry',
         'app.services.jobs',
         'app.services.model_cache',
+        'app.services.hf_auth',
         'app.services.downloads',
         'app.services',
         'app.services.model_manager',

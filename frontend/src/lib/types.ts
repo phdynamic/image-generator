@@ -50,6 +50,8 @@ export interface ModelInfo {
   fixed_cfg: number | null
   supports_negative: boolean
   experimental: boolean
+  gated: boolean
+  needs_token: boolean
   download_gb: number | null
   download: DownloadState | null
 }
