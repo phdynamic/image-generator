@@ -90,6 +90,8 @@ mkdir -p "$UNIT_DIR"
 sed "s|@APP_DIR@|$APP_DIR|g" "$APP_DIR/scripts/imaginaree.service" > "$UNIT_DIR/imaginaree.service"
 systemctl --user daemon-reload
 systemctl --user enable imaginaree.service
+# A service that failed repeatedly is refused further starts until reset.
+systemctl --user reset-failed imaginaree.service 2>/dev/null || true
 systemctl --user restart imaginaree.service
 # Lets the service start at boot, before you log in.
 loginctl enable-linger "$USER" || warn "Could not enable lingering; the app will only run while you're logged in."

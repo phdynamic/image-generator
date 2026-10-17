@@ -125,6 +125,9 @@ skip re-downloading models. To bring your gallery, copy `imaginaree.db` and the
 - **"No GPU (CPU mode)" in the header.** Run `nvidia-smi`. If that works, PyTorch
   was installed without CUDA. Reinstall it with
   `TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128 bash scripts/setup_linux.sh`.
+- **"Start request repeated too quickly".** systemd stops retrying after 5 quick
+  failures. Fix the cause (see the log), then run
+  `systemctl --user reset-failed imaginaree && systemctl --user start imaginaree`.
 - **The app won't start.** Run `journalctl --user -u imaginaree -n 50 --no-pager`.
   The most common cause is a missing password: the app refuses to start in public
   mode without one. Run `set_password.py`.
