@@ -8,7 +8,8 @@ from ..config import settings
 from ..database import SessionLocal
 from ..models.image import GeneratedImage
 from ..services.jobs import JobError, job_manager
-from ..services.model_registry import get_spec
+from ..services.model_registry import get_spec, gpu_problem
+from ..utils.gpu_utils import get_vram_info
 from .websocket import manager
 
 router = APIRouter(prefix="/api")
@@ -113,8 +114,12 @@ def generate_image(
     input_image: UploadFile | None = File(None),
 ):
     """Queues an image for generation. Poll GET /api/jobs/{job_id} for the result."""
-    if get_spec(model_id) is None:
+    spec = get_spec(model_id)
+    if spec is None:
         raise HTTPException(status_code=400, detail=f"Unknown model: {model_id}")
+    problem = gpu_problem(spec, (get_vram_info() or {}).get("total"))
+    if problem:
+        raise HTTPException(status_code=400, detail=problem)
     if job_manager.queued_count() >= MAX_QUEUED_JOBS:
         raise HTTPException(status_code=429, detail="Too many images queued. Wait for some to finish.")
 

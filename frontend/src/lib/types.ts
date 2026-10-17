@@ -52,6 +52,9 @@ export interface ModelInfo {
   experimental: boolean
   gated: boolean
   needs_token: boolean
+  min_vram_gb: number
+  fits_gpu: boolean
+  gpu_problem: string | null
   download_gb: number | null
   download: DownloadState | null
 }

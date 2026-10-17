@@ -12,9 +12,11 @@ interface PromptEditorProps {
   isGenerating: boolean
   selectedModel?: string
   modelInfo?: ModelInfo
+  /** When set, generating is disabled and this explains why. */
+  blockedReason?: string
 }
 
-const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGenerate, isGenerating, selectedModel, modelInfo }, ref) => {
+const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGenerate, isGenerating, selectedModel, modelInfo, blockedReason }, ref) => {
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -63,7 +65,7 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!prompt.trim() || isGenerating) return
+    if (!prompt.trim() || isGenerating || blockedReason) return
 
     let finalPrompt = prompt.trim()
     if (enhance) {
@@ -306,7 +308,7 @@ const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(({ onGene
 
       <button
         type="submit"
-        disabled={!prompt.trim() || isGenerating}
+        disabled={!prompt.trim() || isGenerating || !!blockedReason}
         className="w-full bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
       >
         {isGenerating ? (

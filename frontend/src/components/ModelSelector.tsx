@@ -69,7 +69,7 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
         >
           {models.map((model) => (
             <option key={model.id} value={model.id}>
-              {model.is_loaded ? '● ' : ''}{model.name} ({model.vram}){model.is_cached ? '' : ' ⤓'}
+              {model.is_loaded ? '● ' : ''}{model.name} ({model.fits_gpu ? model.vram : `needs ${model.min_vram_gb} GB GPU`}){model.is_cached ? '' : ' ⤓'}
             </option>
           ))}
         </select>
@@ -80,7 +80,13 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
         <div className="mt-1.5 space-y-2 text-xs text-slate-500">
           <p>{selected.description}</p>
 
-          {selected.needs_token && !selected.is_cached && (
+          {!selected.fits_gpu && (
+            <p className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-2">
+              {selected.gpu_problem} It can't be downloaded or used on this computer.
+            </p>
+          )}
+
+          {selected.needs_token && !selected.is_cached && selected.fits_gpu && (
             <p className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg p-2">
               Needs a free HuggingFace token. Accept the terms at huggingface.co/{selected.id}, create a
               Read token, and add <code>HF_TOKEN=...</code> to the .env file. See the setup guide.
@@ -101,7 +107,7 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
                 <Trash2 size={12} /> Delete
               </button>
             </div>
-          ) : (
+          ) : !selected.fits_gpu ? null : (
             <button
               onClick={() => downloadMutation.mutate(selected.id)}
               disabled={!!busyModel || downloadMutation.isPending}

@@ -38,6 +38,7 @@ export default function Generate() {
             isGenerating={isGenerating}
             selectedModel={activeModelId || undefined}
             modelInfo={activeModel}
+            blockedReason={activeModel && !activeModel.fits_gpu ? (activeModel.gpu_problem ?? 'This model can\'t run on this GPU.') : undefined}
           />
           <ProgressBar ref={progressRef} isGenerating={isGenerating} />
           {error && (

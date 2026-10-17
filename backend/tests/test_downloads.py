@@ -16,12 +16,12 @@ MB = 1024 * 1024
 def clean_state():
     download_manager._states.clear()
     download_manager._active = None
-    for m in (MODEL, OTHER):
+    for m in (MODEL, OTHER, "black-forest-labs/FLUX.1-schnell"):
         model_cache.delete(m)
     yield
     download_manager._states.clear()
     download_manager._active = None
-    for m in (MODEL, OTHER):
+    for m in (MODEL, OTHER, "black-forest-labs/FLUX.1-schnell"):
         model_cache.delete(m)
 
 
@@ -189,12 +189,23 @@ def test_download_endpoints_need_sign_in(locked_client):
     assert locked_client.post("/api/models/delete", json={"model_id": MODEL}).status_code == 401
 
 
-# -- gated models (FLUX) --------------------------------------------------------
+# -- GPU size / gated models (FLUX) ----------------------------------------------
+
+GIB_BYTES = 1024 ** 3
+
+
+def fake_gpu(monkeypatch, total_gib):
+    info = {"total": int(total_gib * GIB_BYTES), "used": 0, "free": int(total_gib * GIB_BYTES)} if total_gib else None
+    for module in ("app.routers.models_router", "app.routers.generate"):
+        monkeypatch.setattr(f"{module}.get_vram_info", lambda: info)
+
+
 
 FLUX = "black-forest-labs/FLUX.1-schnell"
 
 
 def test_gated_model_without_token_fails_fast(open_client, monkeypatch):
+    fake_gpu(monkeypatch, 24)
     monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: False)
     m = info(open_client, FLUX)
     assert m["gated"] is True and m["needs_token"] is True
@@ -205,6 +216,7 @@ def test_gated_model_without_token_fails_fast(open_client, monkeypatch):
 
 
 def test_gated_model_with_token_can_download(open_client, monkeypatch):
+    fake_gpu(monkeypatch, 24)
     monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: True)
     monkeypatch.setattr(model_cache, "free_disk_bytes", lambda: 10 ** 13)
     monkeypatch.setattr(app.state.model_manager, "download_model", lambda spec: write_finished(spec.id))
@@ -217,3 +229,48 @@ def test_gated_model_with_token_can_download(open_client, monkeypatch):
 def test_ungated_models_never_need_a_token(open_client, monkeypatch):
     monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: False)
     assert info(open_client, MODEL)["needs_token"] is False
+
+
+# -- models that don't fit this GPU ---------------------------------------------
+
+def test_flux_is_unavailable_on_an_8gb_card(open_client, monkeypatch):
+    fake_gpu(monkeypatch, 7.68)   # the RTX 3070 from the real error report
+    flux = info(open_client, FLUX)
+    assert flux["fits_gpu"] is False
+    assert "12 GB" in flux["gpu_problem"] and "7.7 GB" in flux["gpu_problem"]
+    assert info(open_client, MODEL)["fits_gpu"] is True      # SDXL models are unaffected
+    assert info(open_client, "Lykon/dreamshaper-8")["gpu_problem"] is None
+
+
+def test_flux_is_available_on_a_big_card(open_client, monkeypatch):
+    fake_gpu(monkeypatch, 24)
+    assert info(open_client, FLUX)["fits_gpu"] is True
+    fake_gpu(monkeypatch, 11.6)   # a "12 GB" card reports slightly less
+    assert info(open_client, FLUX)["fits_gpu"] is True
+
+
+def test_flux_needs_a_gpu_at_all(open_client, monkeypatch):
+    fake_gpu(monkeypatch, None)
+    flux = info(open_client, FLUX)
+    assert flux["fits_gpu"] is False and "NVIDIA GPU" in flux["gpu_problem"]
+
+
+def test_download_refused_when_model_cannot_run(open_client, monkeypatch):
+    fake_gpu(monkeypatch, 7.68)
+    monkeypatch.setattr("app.routers.models_router.hf_token_available", lambda: True)
+    r = open_client.post("/api/models/download", json={"model_id": FLUX})
+    assert r.status_code == 400 and "12 GB" in r.json()["detail"]
+    assert download_manager.active() is None
+
+
+def test_generation_refused_when_model_cannot_run(open_client, monkeypatch):
+    fake_gpu(monkeypatch, 7.68)
+    r = open_client.post("/api/generate", data={"prompt": "x", "model_id": FLUX})
+    assert r.status_code == 400 and "12 GB" in r.json()["detail"]
+
+
+def test_can_still_delete_a_model_that_cannot_run(open_client, monkeypatch):
+    fake_gpu(monkeypatch, 7.68)
+    write_finished(FLUX)
+    assert open_client.post("/api/models/delete", json={"model_id": FLUX}).status_code == 200
+    assert not model_cache.repo_dir(FLUX).exists()

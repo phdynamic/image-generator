@@ -112,7 +112,7 @@ with a model you haven't downloaded also works; it just downloads first.)
 | RealVisXL V5.0 | ~7 GB | Natural, realistic SDXL |
 | Segmind SSD-1B | ~5 GB | Lighter SDXL |
 | SDXL Turbo | ~6 GB | Drafts in 1-4 steps |
-| FLUX.1 schnell | ~34 GB | **Experimental.** Best prompt following and text in images. **Needs a free HuggingFace token** (below) |
+| FLUX.1 schnell | ~34 GB | **Experimental, needs a GPU with about 12 GB.** Best prompt following and text in images. Needs a free HuggingFace token (below). On smaller cards it's greyed out: an 8 GB card ran out of memory loading it |
 
 Choosing a model sets its recommended steps, guidance and image size. Turbo and
 FLUX ignore the guidance slider and negative prompts, so those controls are
@@ -121,11 +121,15 @@ locked for them.
 **Your 8 GB card is shared with the desktop.** Plasma, Steam and your browser
 take roughly 2 GB, so about 6 GB is free for generation. Imaginaree checks the
 free VRAM when it loads a model and moves parts of the model to system RAM when
-needed, which makes SDXL models slower but lets them fit. For FLUX, close Steam
-and other GPU programs first. If you see "ran out of memory", use a smaller image
-size or a lighter model.
+needed, which makes SDXL models slower but lets them fit. If you see "ran out of
+memory", use a smaller image size, close other GPU programs, or pick a lighter model.
 
-### Models that need a HuggingFace token (FLUX)
+FLUX can't be made to fit in that space (its smallest 4-bit form needs a single
+5.5 GB block of GPU memory), so Imaginaree turns it off on GPUs under about 12 GB
+instead of letting you download 34 GB first. If you already downloaded it, select
+it and use **Delete** to free the disk space.
+
+### Models that need a HuggingFace token (FLUX, on a bigger GPU)
 
 FLUX.1 schnell is free, but HuggingFace only gives its files to signed-in accounts
 that have agreed to share their contact details. The other models don't need this.

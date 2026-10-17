@@ -28,6 +28,8 @@ class ModelSpec:
     experimental: bool = False
     gated: bool = False
     download_gb: float | None = None
+    # Smallest GPU (total memory) the model can run on; 0 means no requirement.
+    min_vram_gb: float = 0
 
     def to_api(self) -> dict:
         data = asdict(self)
@@ -100,8 +102,8 @@ MODELS: list[ModelSpec] = [
         family="flux",
         vram_gb=7,
         description=(
-            "Best prompt following and readable text in images. Heavy on an 8 GB "
-            "card: close other GPU apps first."
+            "Best prompt following and readable text in images. Needs a GPU with "
+            "about 12 GB of memory."
         ),
         default_steps=4,
         default_cfg=0.0,
@@ -112,6 +114,7 @@ MODELS: list[ModelSpec] = [
         experimental=True,
         gated=True,
         download_gb=34,
+        min_vram_gb=12,
     ),
 ]
 
@@ -120,3 +123,17 @@ _BY_ID = {m.id: m for m in MODELS}
 
 def get_spec(model_id: str) -> ModelSpec | None:
     return _BY_ID.get(model_id)
+
+
+def gpu_problem(spec: ModelSpec, total_vram_bytes: int | None) -> str | None:
+    """Why this model can't run on this GPU, or None if it can."""
+    if not spec.min_vram_gb:
+        return None
+    if total_vram_bytes is None:
+        return f"{spec.name} needs an NVIDIA GPU with about {spec.min_vram_gb:g} GB of memory."
+    total_gb = total_vram_bytes / 1024 ** 3
+    # Cards report a little under their nominal size (a "12 GB" card shows ~11.6).
+    if total_gb >= spec.min_vram_gb - 0.75:
+        return None
+    return (f"{spec.name} needs a GPU with about {spec.min_vram_gb:g} GB of memory; "
+            f"this one has {total_gb:.1f} GB.")
