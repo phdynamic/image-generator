@@ -48,9 +48,12 @@ guide.
    pick the free plan and add a payment method first; the free plan isn't charged.
 2. Go to **Networks → Tunnels → Create a tunnel**, choose **Cloudflared**, and
    name it `imaginaree`.
-3. On the install page pick **Linux** and copy the **token**. It's the long
-   string after `--token` (or `service install`) in the command shown. Treat it
-   like a password.
+3. On the install page, pick any operating system. Fedora and Bazzite aren't listed, and
+   that's fine: the choice only changes the install command shown. **Don't run
+   that command**; the setup script below installs cloudflared in a way that suits
+   an immutable system. All you need from this page is the **token**: the long
+   string starting with `eyJ`, found after `install` or `--token` in the command
+   shown. Copy just that string. Treat it like a password.
 4. Open the tunnel's **Public Hostname** tab and add a hostname:
    - Subdomain and domain: for example `images` + `yourdomain.com`
    - Service type: **HTTP**
