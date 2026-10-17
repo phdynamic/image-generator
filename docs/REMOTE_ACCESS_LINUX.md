@@ -44,20 +44,24 @@ You need your domain on Cloudflare (its nameservers pointed at Cloudflare).
 Cloudflare's menus move around from time to time, so use the names below as a
 guide.
 
-1. In the Cloudflare dashboard open **Zero Trust**. Cloudflare may ask you to
-   pick the free plan and add a payment method first; the free plan isn't charged.
-2. Go to **Networks → Tunnels → Create a tunnel**, choose **Cloudflared**, and
-   name it `imaginaree`.
+1. In the Cloudflare dashboard open **Networking → Tunnels**. (Older dashboards
+   call this **Zero Trust → Networks → Tunnels**.) Cloudflare may ask you to pick
+   the free plan and add a payment method first; the free plan isn't charged.
+2. Choose **Create a tunnel**, pick **Cloudflared**, and name it `imaginaree`.
 3. On the install page, pick any operating system. Fedora and Bazzite aren't listed, and
    that's fine: the choice only changes the install command shown. **Don't run
    that command**; the setup script below installs cloudflared in a way that suits
    an immutable system. All you need from this page is the **token**: the long
    string starting with `eyJ`, found after `install` or `--token` in the command
    shown. Copy just that string. Treat it like a password.
-4. Open the tunnel's **Public Hostname** tab and add a hostname:
-   - Subdomain and domain: for example `images` + `yourdomain.com`
-   - Service type: **HTTP**
-   - URL: `localhost:8000` (or the port the setup script chose)
+4. Open your tunnel and go to its **Routes** tab. (This used to be called
+   **Public Hostname**; if you still see that name, it's the same thing.) Choose
+   **Add route → Published application** and fill in:
+   - **Hostname:** a subdomain plus your domain, for example `images` + `yourdomain.com`
+   - **Service URL:** `http://localhost:8000`, or the port the setup script chose
+     (include the `http://`)
+
+   Saving it creates the DNS record for you.
 
 Then, on the machine:
 

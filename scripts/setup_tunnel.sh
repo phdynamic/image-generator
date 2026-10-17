@@ -48,4 +48,4 @@ systemctl --user --no-pager --lines=5 status cloudflared-imaginaree.service || t
 
 PORT="$(grep -E '^APP_PORT=' "$APP_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2 | tr -d "'\" ")"
 printf '\nDone. Open your domain in a browser and sign in.\n'
-printf 'The tunnel'"'"'s public hostname must point to HTTP  localhost:%s\n' "${PORT:-8000}"
+printf 'In Cloudflare, the tunnel route'"'"'s Service URL must be http://localhost:%s\n' "${PORT:-8000}"
