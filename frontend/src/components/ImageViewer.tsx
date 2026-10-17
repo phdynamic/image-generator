@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { X, Download, Heart, Trash2, Copy, Send, ZoomIn, Loader2, RefreshCw } from 'lucide-react'
 import type { GeneratedImage, GenerateRequest } from '../lib/types'
 import { getImageUrl, upscaleImage } from '../lib/api'
@@ -28,6 +28,24 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
       document.body.style.overflow = ''
     }
   }, [handleKeyDown])
+
+  // On a phone, Back should close the viewer rather than leave the app. Opening adds
+  // a history entry; Back (or any other way of closing) removes it again.
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+  useEffect(() => {
+    let entryPending = true
+    window.history.pushState({ imaginareeViewer: true }, '')
+    const onPop = () => {
+      entryPending = false
+      closeRef.current()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      if (entryPending) window.history.back()
+    }
+  }, [])
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose()
@@ -116,32 +134,34 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm md:flex md:items-center md:justify-center md:p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-slate-800 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row border border-slate-700 shadow-2xl">
+      {/* Phones: one full-screen page that scrolls. Desktop: picture beside the details. */}
+      <div className="bg-slate-800 w-full h-dvh overflow-y-auto overscroll-contain flex flex-col md:flex-row md:h-auto md:max-h-[90vh] md:max-w-6xl md:overflow-hidden md:rounded-2xl md:border md:border-slate-700 md:shadow-2xl">
         {/* Image section */}
-        <div className="flex-1 min-h-0 bg-slate-900 flex items-center justify-center p-4">
+        <div className="shrink-0 md:shrink md:flex-1 md:min-h-0 bg-slate-900 flex items-center justify-center p-3 md:p-4">
           <img
             src={getImageUrl(image)}
             alt={image.prompt}
-            className="max-w-full max-h-[70vh] object-contain rounded-lg"
+            className="max-w-full max-h-[60dvh] md:max-h-[70vh] object-contain rounded-lg"
           />
         </div>
 
         {/* Metadata sidebar */}
-        <div className="w-full md:w-96 flex-shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-slate-700">
+        <div className="w-full md:w-96 shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-slate-700">
           <div className="flex items-center justify-between p-4 border-b border-slate-700">
             <h3 className="text-lg font-semibold text-white">Details</h3>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-700 transition-colors"
+              aria-label="Close"
+              className="hidden md:block p-1.5 rounded-lg hover:bg-slate-700 transition-colors"
             >
               <X size={20} className="text-slate-400" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="p-4 space-y-4 md:flex-1 md:overflow-y-auto">
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wider">Prompt</label>
               <p className="text-sm text-white mt-1">{image.prompt}</p>
@@ -196,7 +216,7 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
           </div>
 
           {/* Actions */}
-          <div className="p-4 border-t border-slate-700 flex flex-wrap gap-2">
+          <div className="sticky bottom-0 md:static bg-slate-800 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-700 flex flex-wrap gap-2">
             {onRegenerate && (
               <button
                 onClick={handleRegenerate}
@@ -273,6 +293,15 @@ export default function ImageViewer({ image, onClose, onToggleFavorite, onDelete
           </div>
         </div>
       </div>
+
+      {/* Phones: a large close button that stays on screen however far you scroll */}
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        className="md:hidden fixed right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 w-11 h-11 rounded-full bg-black/70 backdrop-blur flex items-center justify-center shadow-lg"
+      >
+        <X size={22} className="text-white" />
+      </button>
     </div>
   )
 }

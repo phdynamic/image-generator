@@ -53,7 +53,7 @@ export default function ImageCard({ image, onView, onToggleFavorite, onDelete, s
 
       {/* Hover overlay */}
       {!selectable && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200">
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <p className="text-sm text-white line-clamp-2 mb-2">{image.prompt}</p>
             <div className="flex gap-2">
